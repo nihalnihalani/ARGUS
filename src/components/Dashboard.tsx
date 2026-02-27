@@ -18,7 +18,6 @@ import {
   Scan,
 } from "lucide-react";
 import { IconShieldBolt } from "@tabler/icons-react";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import ThreatGraph from "@/components/ThreatGraph";
 import AttackMap from "@/components/AttackMap";
@@ -28,12 +27,14 @@ import SearchBar from "@/components/SearchBar";
 import TrajectoryViewer from "@/components/TrajectoryViewer";
 import { RadarLoader } from "@/components/ui/radar-loader";
 import { CommandPalette } from "@/components/CommandPalette";
+import GraphStats from "@/components/GraphStats";
+import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import type {
   GraphNode,
   GraphEdge,
   FeedItem,
   ThreatBrief as ThreatBriefType,
-  GraphStats,
+  GraphStats as GraphStatsType,
   AttackArc,
   PipelineResult,
 } from "@/lib/types";
@@ -283,7 +284,7 @@ const DEMO_ATTACK_PATH = {
   ],
 };
 
-const DEFAULT_STATS: GraphStats = {
+const DEFAULT_STATS: GraphStatsType = {
   nodeCount: 0,
   edgeCount: 0,
   threatActorCount: 0,
@@ -297,7 +298,7 @@ const DEFAULT_STATS: GraphStats = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parseStats(data: Record<string, unknown>): GraphStats {
+function parseStats(data: Record<string, unknown>): GraphStatsType {
   const raw = (data.stats || data) as Record<string, unknown>;
   const toNum = (v: unknown): number => {
     if (typeof v === "number") return v;
@@ -402,7 +403,7 @@ export default function Dashboard() {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [feedItems, setFeedItems] = useState<FeedItem[]>(DEMO_FEED_ITEMS);
   const [threatBrief, setThreatBrief] = useState<ThreatBriefType | null>(DEMO_BRIEF);
-  const [stats, setStats] = useState<GraphStats>(DEFAULT_STATS);
+  const [stats, setStats] = useState<GraphStatsType>(DEFAULT_STATS);
   const [attackPath, setAttackPath] = useState<{ nodes: string[]; edges: string[] } | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
@@ -877,49 +878,45 @@ export default function Dashboard() {
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0A0E17]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden tg-atmosphere tg-scanline relative">
-        {/* Header */}
-        <Header
-          stats={stats}
-          threatLevel={threatBrief?.overall_threat_level || "moderate"}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          isDemoMode={isDemoMode}
-          onToggleDemo={toggleDemoMode}
-        />
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0A0E17] tg-atmosphere tg-scanline relative">
+      {/* Header */}
+      <Header
+        stats={stats}
+        threatLevel={threatBrief?.overall_threat_level || "moderate"}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+        isDemoMode={isDemoMode}
+        onToggleDemo={toggleDemoMode}
+      />
 
         {/* Main Content Area: 2-Column Layout */}
         <div className="flex-1 overflow-hidden relative z-10 flex">
           
           {/* Left Column: Visualizer */}
-          <div className="flex-1 flex flex-col min-w-0 bg-[#0A0E17]">
+          <div className="flex-1 flex flex-col min-w-0 bg-[#0A0E17] relative">
             {/* Segmented Control for Visualizer */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center p-1 bg-white/[0.03] backdrop-blur-md border border-white/[0.08] rounded-lg shadow-2xl">
-              <button
-                onClick={() => setActiveVisualizer('graph')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  activeVisualizer === 'graph'
-                    ? 'bg-red-500/10 text-red-400 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.2)]'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-                }`}
-              >
-                <Network className="h-4 w-4" />
-                Threat Graph
-              </button>
-              <div className="w-[1px] h-4 mx-1 bg-white/[0.08]" />
-              <button
-                onClick={() => setActiveVisualizer('map')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  activeVisualizer === 'map'
-                    ? 'bg-blue-500/10 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.2)]'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-                }`}
-              >
-                <Globe className="h-4 w-4" />
-                Global Map
-              </button>
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+              <ExpandableTabs
+                tabs={[
+                  { title: "Threat Graph", icon: Network },
+                  { title: "Global Map", icon: Globe },
+                ]}
+                activeColor="text-red-400"
+                defaultSelected={activeVisualizer === 'graph' ? 0 : 1}
+                onChange={(index) => {
+                  if (index !== null) {
+                    setActiveVisualizer(index === 0 ? 'graph' : 'map');
+                  }
+                }}
+                className="bg-[rgba(10,14,23,0.8)] backdrop-blur-xl border-white/[0.08] shadow-2xl"
+              />
+            </div>
+
+            {/* Bottom Graph Stats */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+              <div className="bg-[rgba(10,14,23,0.7)] backdrop-blur-xl border border-white/[0.06] rounded-xl p-1.5 shadow-2xl">
+                <GraphStats stats={stats} />
+              </div>
             </div>
 
             <div className="flex-1 relative">
@@ -941,29 +938,21 @@ export default function Dashboard() {
           {/* Right Column: Context & Tools */}
           <div className="w-[440px] shrink-0 border-l border-white/[0.04] bg-[#0A0E17]/90 backdrop-blur-xl flex flex-col z-20 shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)]">
             {/* Tabs */}
-            <div className="flex items-center p-2 border-b border-white/[0.04] bg-white/[0.01]">
-              <button
-                onClick={() => setActiveTab('intelligence')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'intelligence'
-                    ? 'bg-white/[0.05] text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-                }`}
-              >
-                <FileText className="h-4 w-4" />
-                Intelligence
-              </button>
-              <button
-                onClick={() => setActiveTab('investigate')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'investigate'
-                    ? 'bg-white/[0.05] text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-                }`}
-              >
-                <Search className="h-4 w-4" />
-                Investigate
-              </button>
+            <div className="flex items-center justify-center p-3 border-b border-white/[0.04] bg-white/[0.01]">
+              <ExpandableTabs
+                tabs={[
+                  { title: "Intelligence", icon: FileText },
+                  { title: "Investigate", icon: Search },
+                ]}
+                activeColor="text-red-400"
+                defaultSelected={activeTab === 'intelligence' ? 0 : 1}
+                onChange={(index) => {
+                  if (index !== null) {
+                    setActiveTab(index === 0 ? 'intelligence' : 'investigate');
+                  }
+                }}
+                className="w-full justify-center bg-white/[0.02] border-white/[0.05]"
+              />
             </div>
 
             {/* Tab Content */}
@@ -992,7 +981,6 @@ export default function Dashboard() {
       />
 
       <CommandPalette />
-      </div>
     </div>
   );
 }

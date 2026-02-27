@@ -1,8 +1,17 @@
 "use client";
 
-import { RefreshCw, Zap } from "lucide-react";
+import {
+  RefreshCw,
+  Zap,
+  Home,
+  ShieldAlert,
+  Settings,
+  Bell,
+  Network,
+  Globe2
+} from "lucide-react";
 import { ArgusLogo } from "@/components/ui/argus-logo";
-import GraphStats from "@/components/GraphStats";
+import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import type { GraphStats as GraphStatsType } from "@/lib/types";
 
 const threatLevelColors: Record<string, string> = {
@@ -80,8 +89,21 @@ export default function Header({
         </div>
       </div>
 
-      {/* Center: Stats */}
-      <GraphStats stats={stats} />
+      {/* Center: Navigation */}
+      <div className="flex-1 flex justify-center">
+        <ExpandableTabs
+          tabs={[
+            { title: "Dashboard", icon: Home },
+            { title: "Alerts", icon: ShieldAlert },
+            { type: "separator" },
+            { title: "Network", icon: Network },
+            { title: "Global Map", icon: Globe2 },
+          ]}
+          activeColor="text-red-400"
+          className="bg-white/[0.02] border-white/[0.04]"
+          defaultSelected={0}
+        />
+      </div>
 
       {/* Right: Controls */}
       <div className="flex items-center gap-2 shrink-0">

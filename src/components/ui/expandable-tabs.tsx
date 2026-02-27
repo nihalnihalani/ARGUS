@@ -25,20 +25,38 @@ interface ExpandableTabsProps {
   className?: string;
   activeColor?: string;
   onChange?: (index: number | null) => void;
-  size?: "default" | "sm";
+  defaultSelected?: number | null;
 }
 
-const transition = { type: "spring" as const, bounce: 0.15, duration: 0.5 };
+const buttonVariants = {
+  initial: {
+    gap: 0,
+    paddingLeft: ".5rem",
+    paddingRight: ".5rem",
+  },
+  animate: (isSelected: boolean) => ({
+    gap: isSelected ? ".5rem" : 0,
+    paddingLeft: isSelected ? "1rem" : ".5rem",
+    paddingRight: isSelected ? "1rem" : ".5rem",
+  }),
+};
+
+const spanVariants = {
+  initial: { width: 0, opacity: 0 },
+  animate: { width: "auto", opacity: 1 },
+  exit: { width: 0, opacity: 0 },
+};
+
+const transition = { delay: 0.1, type: "spring" as const, bounce: 0, duration: 0.6 };
 
 export function ExpandableTabs({
   tabs,
   className,
   activeColor = "text-primary",
+  defaultSelected = null,
   onChange,
-  size = "default",
 }: ExpandableTabsProps) {
-  const isSmall = size === "sm";
-  const [selected, setSelected] = React.useState<number | null>(null);
+  const [selected, setSelected] = React.useState<number | null>(defaultSelected);
   const outsideClickRef = React.useRef<HTMLDivElement>(null);
 
   useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {
@@ -47,65 +65,54 @@ export function ExpandableTabs({
   });
 
   const handleSelect = (index: number) => {
-    setSelected(selected === index ? null : index);
-    onChange?.(selected === index ? null : index);
+    setSelected(index);
+    onChange?.(index);
   };
 
-  const SeparatorEl = () => (
-    <div
-      className={cn(
-        "mx-0.5 w-px shrink-0",
-        isSmall ? "h-4" : "h-5",
-        "bg-white/[0.06]"
-      )}
-      aria-hidden="true"
-    />
+  const Separator = () => (
+    <div className="mx-1 h-[24px] w-[1.2px] bg-border" aria-hidden="true" />
   );
 
   return (
-    <motion.div
+    <div
       ref={outsideClickRef}
-      layout
-      transition={transition}
       className={cn(
-        "flex items-center rounded-xl border p-0.5",
+        "flex flex-wrap items-center gap-2 rounded-2xl border bg-background p-1 shadow-sm",
         className
       )}
     >
       {tabs.map((tab, index) => {
         if (tab.type === "separator") {
-          return <SeparatorEl key={`separator-${index}`} />;
+          return <Separator key={`separator-${index}`} />;
         }
 
         const Icon = tab.icon;
-        const isActive = selected === index;
-
         return (
           <motion.button
             key={tab.title}
-            layout
-            transition={transition}
+            variants={buttonVariants}
+            initial={false}
+            animate="animate"
+            custom={selected === index}
             onClick={() => handleSelect(index)}
+            transition={transition}
             className={cn(
-              "relative flex items-center gap-0 whitespace-nowrap transition-colors duration-200",
-              isSmall
-                ? "rounded-lg text-[11px] h-7 px-2"
-                : "rounded-lg text-xs h-8 px-2.5",
-              isActive
-                ? cn("bg-white/[0.07]", activeColor)
-                : "text-[#64748b] hover:text-[#94a3b8] hover:bg-white/[0.03]"
+              "relative flex items-center rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-300",
+              selected === index
+                ? cn("bg-muted", activeColor)
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            <Icon size={isSmall ? 13 : 15} className="shrink-0" />
-            <AnimatePresence mode="popLayout">
-              {isActive && (
+            <Icon size={20} />
+            <AnimatePresence initial={false}>
+              {selected === index && (
                 <motion.span
-                  key="label"
-                  initial={{ width: 0, opacity: 0, marginLeft: 0 }}
-                  animate={{ width: "auto", opacity: 1, marginLeft: 6 }}
-                  exit={{ width: 0, opacity: 0, marginLeft: 0 }}
-                  transition={{ type: "spring" as const, bounce: 0.1, duration: 0.45 }}
-                  className="overflow-hidden font-mono font-medium"
+                  variants={spanVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={transition}
+                  className="overflow-hidden"
                 >
                   {tab.title}
                 </motion.span>
@@ -114,6 +121,6 @@ export function ExpandableTabs({
           </motion.button>
         );
       })}
-    </motion.div>
+    </div>
   );
 }
