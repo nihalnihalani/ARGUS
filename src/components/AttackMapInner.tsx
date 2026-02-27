@@ -122,18 +122,47 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
   const [is3D, setIs3D] = useState(true);
   const points = useMemo(() => derivePoints(arcs), [arcs]);
 
-  const arcRoutes = useMemo(
-    () =>
-      arcs.map((arc) => ({
-        id: arc.id,
-        color: SEVERITY_COLORS[arc.severity] ?? '#6b7280',
-        coords: greatCirclePoints(
-          arc.sourceLon, arc.sourceLat,
-          arc.targetLon, arc.targetLat
-        ),
-      })),
-    [arcs]
-  );
+  const arcRoutes = useMemo(() => {
+    const routes: { id: string; color: string; coords: [number, number][] }[] = [];
+    
+    arcs.forEach((arc) => {
+      const color = SEVERITY_COLORS[arc.severity] ?? '#6b7280';
+      
+      // Calculate the longitudinal distance
+      let dLon = arc.targetLon - arc.sourceLon;
+      
+      // If the distance is greater than 180 degrees, the shortest path crosses the antimeridian.
+      // In a continuous map, we want to draw the line across the antimeridian instead of
+      // wrapping all the way around the map.
+      if (Math.abs(dLon) > 180) {
+        // Adjust the target longitude to make the line continuous
+        const adjustedTargetLon = dLon > 0 
+          ? arc.targetLon - 360 
+          : arc.targetLon + 360;
+          
+        routes.push({
+          id: arc.id,
+          color,
+          coords: greatCirclePoints(
+            arc.sourceLon, arc.sourceLat,
+            adjustedTargetLon, arc.targetLat
+          ),
+        });
+      } else {
+        // Normal case, no antimeridian crossing
+        routes.push({
+          id: arc.id,
+          color,
+          coords: greatCirclePoints(
+            arc.sourceLon, arc.sourceLat,
+            arc.targetLon, arc.targetLat
+          ),
+        });
+      }
+    });
+    
+    return routes;
+  }, [arcs]);
 
   return (
     <div className="relative w-full h-full overflow-hidden" style={{ background: '#0A0E17' }}>
