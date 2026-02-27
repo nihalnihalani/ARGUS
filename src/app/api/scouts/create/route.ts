@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
             q.query,
             q.displayName,
             threatIntelSchema,
-            webhookUrl
+            webhookUrl,
+            { outputInterval: 3600, skipEmail: true }
           )
       )
     );

@@ -41,7 +41,7 @@ export default function TrajectoryViewer({
         );
         if (!res.ok) throw new Error(`Failed to load trajectory (${res.status})`);
         const data = await res.json();
-        setSteps(data.steps || []);
+        setSteps(data.trajectory || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
       } finally {

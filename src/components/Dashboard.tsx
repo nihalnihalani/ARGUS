@@ -518,7 +518,11 @@ export default function Dashboard() {
           const res = await fetch(`/api/scouts/poll?id=${scoutId}`);
           const data = await res.json();
           if (data.updates?.length > 0) {
-            for (const update of data.updates) {
+            // data.updates is { scoutId, updates: { id, content, ... }[] }[]
+            const rawUpdates = data.updates.flatMap(
+              (u: { updates: { content: string }[] }) => u.updates
+            );
+            for (const update of rawUpdates) {
               const pipelineRes = await fetch("/api/pipeline/ingest", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

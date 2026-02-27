@@ -7,9 +7,7 @@ const INVESTIGATION_URLS: Record<string, (target: string) => string> = {
   ip: (target) => `https://who.is/whois-ip/ip-address/${encodeURIComponent(target)}`,
 };
 
-const MAX_POLL_ATTEMPTS = 30;
-const POLL_INTERVAL_MS = 2000;
-
+/** POST — Create a browsing investigation task (returns immediately with task ID) */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -35,20 +33,6 @@ export async function POST(req: NextRequest) {
 
     const browsingTask = await createBrowsingTask(startUrl, task);
 
-    // Poll for completion
-    let result = null;
-    for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      const status = await getBrowsingTask(browsingTask.id);
-      if (status.status === 'completed') {
-        result = status.result;
-        break;
-      }
-      if (status.status === 'failed') {
-        throw new Error('Browsing task failed');
-      }
-    }
-
     return NextResponse.json({
       success: true,
       investigation: {
@@ -56,12 +40,44 @@ export async function POST(req: NextRequest) {
         target,
         type,
         startUrl,
-        result,
-        completed: result !== null,
+        status: browsingTask.status,
       },
     });
   } catch (error) {
     console.error('[browse/investigate]', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+/** GET — Poll browsing task status */
+export async function GET(req: NextRequest) {
+  try {
+    const taskId = req.nextUrl.searchParams.get('taskId');
+
+    if (!taskId) {
+      return NextResponse.json(
+        { success: false, error: 'taskId query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const status = await getBrowsingTask(taskId);
+
+    return NextResponse.json({
+      success: true,
+      investigation: {
+        taskId,
+        status: status.status,
+        result: status.result ?? null,
+        completed: status.status === 'completed' || status.status === 'succeeded',
+        failed: status.status === 'failed',
+      },
+    });
+  } catch (error) {
+    console.error('[browse/investigate] GET', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

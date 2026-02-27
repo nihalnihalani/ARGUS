@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createResearchTask, getResearchTask } from '@/lib/yutori';
 import { threatIntelSchema } from '@/lib/schema';
 
-const MAX_POLL_ATTEMPTS = 60;
-const POLL_INTERVAL_MS = 3000;
-
+/** POST — Create a research task (returns immediately with task ID) */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -23,31 +21,49 @@ export async function POST(req: NextRequest) {
 
     const task = await createResearchTask(fullQuery, threatIntelSchema);
 
-    // Poll for completion
-    let result = null;
-    for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-      const status = await getResearchTask(task.id);
-      if (status.status === 'completed') {
-        result = status.result;
-        break;
-      }
-      if (status.status === 'failed') {
-        throw new Error('Research task failed');
-      }
-    }
-
     return NextResponse.json({
       success: true,
       research: {
         taskId: task.id,
         query: fullQuery,
-        result,
-        completed: result !== null,
+        status: task.status,
       },
     });
   } catch (error) {
     console.error('[research/deepdive]', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+/** GET — Poll research task status */
+export async function GET(req: NextRequest) {
+  try {
+    const taskId = req.nextUrl.searchParams.get('taskId');
+
+    if (!taskId) {
+      return NextResponse.json(
+        { success: false, error: 'taskId query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const status = await getResearchTask(taskId);
+
+    return NextResponse.json({
+      success: true,
+      research: {
+        taskId,
+        status: status.status,
+        result: status.result ?? null,
+        completed: status.status === 'completed',
+        failed: status.status === 'failed',
+      },
+    });
+  } catch (error) {
+    console.error('[research/deepdive] GET', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

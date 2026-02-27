@@ -125,7 +125,7 @@ export default function SearchBar({
               : "Graph query executed",
           nodes: data.nodes,
           edges: data.edges,
-          taskId: data.taskId,
+          taskId: data.investigation?.taskId ?? data.research?.taskId ?? data.taskId,
         };
 
         setResults([searchResult]);
