@@ -12,24 +12,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { FeedItem } from "@/lib/types";
 
-const severityColors: Record<string, string> = {
-  critical: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-yellow-500",
-  low: "bg-green-500",
-  info: "bg-gray-500",
-};
-
 const severityBadgeStyles: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400 border-red-500/40",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/40",
-  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
-  low: "bg-green-500/20 text-green-400 border-green-500/40",
-  info: "bg-gray-500/20 text-gray-400 border-gray-500/40",
+  critical: "bg-[rgba(255,59,59,0.12)] text-[#ff3b3b] border-[rgba(255,59,59,0.25)]",
+  high: "bg-[rgba(255,140,66,0.12)] text-[#ff8c42] border-[rgba(255,140,66,0.25)]",
+  medium: "bg-[rgba(255,212,59,0.12)] text-[#ffd43b] border-[rgba(255,212,59,0.25)]",
+  low: "bg-[rgba(81,207,102,0.12)] text-[#51cf66] border-[rgba(81,207,102,0.25)]",
+  info: "bg-[rgba(116,143,252,0.12)] text-[#748ffc] border-[rgba(116,143,252,0.25)]",
 };
 
 const sourceIcons: Record<string, React.ComponentType<{ className?: string }>> =
@@ -67,40 +57,33 @@ function FeedItemCard({ item }: FeedItemCardProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className="border-b border-gray-800 last:border-b-0"
+      className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] transition-colors"
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left px-3 py-2.5 hover:bg-gray-800/50 transition-colors"
+        className="w-full text-left px-4 py-3"
       >
-        <div className="flex items-start gap-2.5">
-          {/* Severity dot */}
-          <span
-            className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-              severityColors[item.severity]
-            }`}
-          />
-
+        <div className="flex items-start gap-3">
+          <span className={`tg-severity-dot mt-1.5 ${item.severity}`} />
+          
           <div className="flex-1 min-w-0">
-            {/* Top row: source icon, title, time */}
-            <div className="flex items-center gap-2">
-              <SourceIcon className="h-3.5 w-3.5 text-gray-500 shrink-0" />
-              <span className="text-sm font-medium text-gray-200 truncate flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <SourceIcon className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="text-sm font-semibold text-slate-200 truncate flex-1">
                 {item.title}
               </span>
-              <span className="text-[10px] text-gray-600 font-mono shrink-0">
+              <span className="text-[10px] text-slate-500 font-mono shrink-0">
                 {timeAgo(item.timestamp)}
               </span>
             </div>
-
-            {/* Description preview */}
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+            
+            <p className="text-xs text-slate-400 line-clamp-1">
               {item.description}
             </p>
           </div>
 
           <ChevronDown
-            className={`h-3.5 w-3.5 text-gray-600 shrink-0 mt-1 transition-transform ${
+            className={`h-4 w-4 text-slate-500 shrink-0 mt-1 transition-transform duration-200 ${
               expanded ? "rotate-180" : ""
             }`}
           />
@@ -116,26 +99,21 @@ function FeedItemCard({ item }: FeedItemCardProps) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 pl-8 space-y-2">
-              <p className="text-xs text-gray-400">{item.description}</p>
-
+            <div className="px-4 pb-4 pl-10 space-y-3">
+              <p className="text-xs text-slate-300 leading-relaxed">{item.description}</p>
+              
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  className={`text-[10px] border ${
-                    severityBadgeStyles[item.severity]
-                  }`}
-                >
-                  {item.severity.toUpperCase()}
-                </Badge>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border ${severityBadgeStyles[item.severity]}`}>
+                  {item.severity}
+                </span>
 
                 {item.entities?.map((entity, i) => (
-                  <Badge
+                  <span
                     key={i}
-                    variant="outline"
-                    className="text-[10px] text-gray-400 border-gray-700"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium text-slate-300 border border-white/[0.08] bg-white/[0.04]"
                   >
                     {entity.type}: {entity.name}
-                  </Badge>
+                  </span>
                 ))}
               </div>
 
@@ -144,10 +122,10 @@ function FeedItemCard({ item }: FeedItemCardProps) {
                   href={item.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors mt-1"
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  View Source
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Source Analysis
                 </a>
               )}
             </div>
@@ -164,28 +142,27 @@ interface LiveFeedProps {
 
 export default function LiveFeed({ items }: LiveFeedProps) {
   return (
-    <Card className="h-full flex flex-col bg-gray-900/50 border-gray-800 py-0 gap-0">
-      <CardHeader className="px-3 py-2.5 border-b border-gray-800 shrink-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-            <Radio className="h-4 w-4 text-green-400" />
-            Live Feed
-          </CardTitle>
-          <span className="text-[10px] text-gray-600 font-mono">
-            {items.length} items
+    <div className="tg-panel h-full flex flex-col">
+      <div className="tg-panel-header shrink-0">
+        <h3>
+          <span className="relative flex h-2 w-2 mr-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2ed573] opacity-40" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2ed573]" />
           </span>
-        </div>
-      </CardHeader>
+          Live Feed
+        </h3>
+        <span className="tg-meta">{items.length} items</span>
+      </div>
 
-      <CardContent className="flex-1 p-0 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-600">
+          <div className="flex flex-col items-center justify-center h-full text-[#334155]">
             <Radio className="h-8 w-8 mb-2 animate-pulse" />
-            <span className="text-sm">Awaiting scout updates...</span>
+            <span className="text-xs">Awaiting scout updates...</span>
             <div className="animate-typing mt-2 flex gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-600" />
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-600" />
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-600" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#334155]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#334155]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#334155]" />
             </div>
           </div>
         ) : (
@@ -197,7 +174,7 @@ export default function LiveFeed({ items }: LiveFeedProps) {
             </AnimatePresence>
           </ScrollArea>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

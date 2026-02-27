@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-outfit);
   --font-mono: var(--font-jetbrains-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -46,116 +46,297 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* Threat severity colors */
-  --color-threat-critical: #ef4444;
-  --color-threat-high: #f97316;
-  --color-threat-medium: #eab308;
-  --color-threat-low: #22c55e;
-  --color-threat-info: #6b7280;
+  /* Threat severity colors — refined palette */
+  --color-threat-critical: #ff3b3b;
+  --color-threat-high: #ff8c42;
+  --color-threat-medium: #ffd43b;
+  --color-threat-low: #51cf66;
+  --color-threat-info: #748ffc;
 
-  /* Node type colors */
-  --color-node-threat-actor: #ef4444;
-  --color-node-vulnerability: #f97316;
-  --color-node-exploit: #f97316;
-  --color-node-software: #3b82f6;
-  --color-node-organization: #22c55e;
-  --color-node-malware: #a855f7;
-  --color-node-campaign: #eab308;
-  --color-node-technique: #6b7280;
+  /* Node type colors — vibrant on dark */
+  --color-node-threat-actor: #ff4757;
+  --color-node-vulnerability: #ff6348;
+  --color-node-exploit: #ff9f43;
+  --color-node-software: #54a0ff;
+  --color-node-organization: #2ed573;
+  --color-node-malware: #c56cf0;
+  --color-node-campaign: #ffdd57;
+  --color-node-technique: #778ca3;
 }
 
 :root {
   --radius: 0.625rem;
-  /* Dark theme by default for cybersecurity app */
-  --background: #030712;
-  --foreground: #f9fafb;
-  --card: #1f2937;
-  --card-foreground: #f9fafb;
-  --popover: #1f2937;
-  --popover-foreground: #f9fafb;
-  --primary: #f9fafb;
-  --primary-foreground: #030712;
-  --secondary: #374151;
-  --secondary-foreground: #f9fafb;
-  --muted: #1f2937;
-  --muted-foreground: #9ca3af;
-  --accent: #374151;
-  --accent-foreground: #f9fafb;
-  --destructive: #ef4444;
-  --border: #374151;
-  --input: #374151;
+  --background: #060a13;
+  --foreground: #e2e8f0;
+  --card: rgba(15, 23, 42, 0.6);
+  --card-foreground: #e2e8f0;
+  --popover: rgba(15, 23, 42, 0.95);
+  --popover-foreground: #e2e8f0;
+  --primary: #e2e8f0;
+  --primary-foreground: #060a13;
+  --secondary: rgba(30, 41, 59, 0.5);
+  --secondary-foreground: #e2e8f0;
+  --muted: rgba(30, 41, 59, 0.4);
+  --muted-foreground: #64748b;
+  --accent: rgba(30, 41, 59, 0.5);
+  --accent-foreground: #e2e8f0;
+  --destructive: #ff3b3b;
+  --border: rgba(51, 65, 85, 0.3);
+  --input: rgba(51, 65, 85, 0.3);
   --ring: #3b82f6;
-  --chart-1: #ef4444;
-  --chart-2: #f97316;
-  --chart-3: #eab308;
-  --chart-4: #22c55e;
-  --chart-5: #3b82f6;
-  --sidebar: #111827;
-  --sidebar-foreground: #f9fafb;
-  --sidebar-primary: #3b82f6;
-  --sidebar-primary-foreground: #f9fafb;
-  --sidebar-accent: #1f2937;
-  --sidebar-accent-foreground: #f9fafb;
-  --sidebar-border: #374151;
-  --sidebar-ring: #3b82f6;
+  --chart-1: #ff3b3b;
+  --chart-2: #ff8c42;
+  --chart-3: #ffd43b;
+  --chart-4: #51cf66;
+  --chart-5: #54a0ff;
+  --sidebar: rgba(15, 23, 42, 0.8);
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: #54a0ff;
+  --sidebar-primary-foreground: #e2e8f0;
+  --sidebar-accent: rgba(30, 41, 59, 0.5);
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: rgba(51, 65, 85, 0.3);
+  --sidebar-ring: #54a0ff;
 }
 
-/* Dark class override (same as default — dark-first design) */
 .dark {
-  --background: #030712;
-  --foreground: #f9fafb;
-  --card: #1f2937;
-  --card-foreground: #f9fafb;
-  --popover: #1f2937;
-  --popover-foreground: #f9fafb;
-  --primary: #f9fafb;
-  --primary-foreground: #030712;
-  --secondary: #374151;
-  --secondary-foreground: #f9fafb;
-  --muted: #1f2937;
-  --muted-foreground: #9ca3af;
-  --accent: #374151;
-  --accent-foreground: #f9fafb;
-  --destructive: #ef4444;
-  --border: #374151;
-  --input: #374151;
+  --background: #060a13;
+  --foreground: #e2e8f0;
+  --card: rgba(15, 23, 42, 0.6);
+  --card-foreground: #e2e8f0;
+  --popover: rgba(15, 23, 42, 0.95);
+  --popover-foreground: #e2e8f0;
+  --primary: #e2e8f0;
+  --primary-foreground: #060a13;
+  --secondary: rgba(30, 41, 59, 0.5);
+  --secondary-foreground: #e2e8f0;
+  --muted: rgba(30, 41, 59, 0.4);
+  --muted-foreground: #64748b;
+  --accent: rgba(30, 41, 59, 0.5);
+  --accent-foreground: #e2e8f0;
+  --destructive: #ff3b3b;
+  --border: rgba(51, 65, 85, 0.3);
+  --input: rgba(51, 65, 85, 0.3);
   --ring: #3b82f6;
 }
+
+/* ========================================================================
+   BASE
+   ======================================================================== */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    background-color: #030712;
-    color: #f9fafb;
+    background: #030308;
+    color: #e2e8f0;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
+/* ========================================================================
+   ATMOSPHERIC BACKGROUND — grid + radial gradient + noise
+   ======================================================================== */
+
+.tg-atmosphere {
+  position: relative;
+  background: #060a13;
+}
+
+.tg-atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(239, 68, 68, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(168, 85, 247, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tg-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========================================================================
+   GLASSMORPHISM PANELS
+   ======================================================================== */
+
+.tg-panel {
+  background: rgba(10, 18, 32, 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.tg-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.01) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Panel with accent glow */
+.tg-panel-glow-red {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(239, 68, 68, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.tg-panel-glow-blue {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(59, 130, 246, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+/* ========================================================================
+   PANEL HEADER — refined section headers
+   ======================================================================== */
+
+.tg-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.tg-panel-header h3 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tg-panel-header .tg-meta {
+  font-size: 10px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  color: #475569;
+}
+
+/* ========================================================================
+   STAT PILL — refined inline statistics
+   ======================================================================== */
+
+.tg-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.tg-stat .tg-stat-value {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.tg-stat .tg-stat-icon {
+  width: 13px;
+  height: 13px;
+  opacity: 0.5;
+}
+
+/* ========================================================================
+   SEVERITY INDICATOR
+   ======================================================================== */
+
+.tg-severity-dot {
   width: 6px;
   height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #030712;
-}
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-/* Pulse glow animation for critical alerts */
+.tg-severity-dot.critical {
+  background: #ff3b3b;
+  box-shadow: 0 0 6px rgba(255, 59, 59, 0.5);
+}
+.tg-severity-dot.high {
+  background: #ff8c42;
+  box-shadow: 0 0 6px rgba(255, 140, 66, 0.4);
+}
+.tg-severity-dot.medium {
+  background: #ffd43b;
+}
+.tg-severity-dot.low {
+  background: #51cf66;
+}
+.tg-severity-dot.info {
+  background: #748ffc;
+}
+
+/* ========================================================================
+   CUSTOM SCROLLBAR
+   ======================================================================== */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* ========================================================================
+   ANIMATIONS
+   ======================================================================== */
+
+/* Pulse glow for critical alerts */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 4px rgba(255, 59, 59, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 20px rgba(255, 59, 59, 0.6), 0 0 40px rgba(255, 59, 59, 0.2);
   }
 }
 
@@ -163,14 +344,10 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Edge particle flow animation */
+/* Edge particle flow */
 @keyframes flow {
-  from {
-    stroke-dashoffset: 24;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
 }
 
 .animate-flow {
@@ -178,83 +355,202 @@
   animation: flow 1.5s linear infinite;
 }
 
-/* Node entrance animation */
+/* Node entrance */
 @keyframes nodeEnter {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .animate-node-enter {
   animation: nodeEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Slide in from top for feed items */
+/* Slide in from top */
 @keyframes slideInTop {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .animate-slide-in-top {
   animation: slideInTop 0.3s ease-out forwards;
 }
 
-/* Typing indicator animation */
+/* Typing indicator */
 @keyframes typing {
-  0%, 60%, 100% {
-    opacity: 0.3;
-  }
-  30% {
-    opacity: 1;
-  }
+  0%, 60%, 100% { opacity: 0.2; }
+  30% { opacity: 1; }
 }
 
 .animate-typing > span:nth-child(1) { animation: typing 1.4s infinite 0s; }
 .animate-typing > span:nth-child(2) { animation: typing 1.4s infinite 0.2s; }
 .animate-typing > span:nth-child(3) { animation: typing 1.4s infinite 0.4s; }
 
+/* Scan line — subtle horizontal sweep */
+@keyframes scanline {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 0.05; }
+  90% { opacity: 0.05; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+.tg-scanline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.3), transparent);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+  z-index: 100;
+}
+
 /* Attack path glow */
 .attack-path-edge {
-  stroke: #ef4444;
+  stroke: #ff3b3b;
   stroke-width: 3;
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.7));
+  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.6));
   stroke-dasharray: 8, 16;
   animation: flow 1s linear infinite;
 }
 
-/* Dimmed elements (non-attack-path) */
 .graph-dimmed {
-  opacity: 0.15;
-  transition: opacity 0.4s ease;
+  opacity: 0.12;
+  transition: opacity 0.5s ease;
 }
 
-/* Red pulsing dot */
+/* Pulsing dot */
 @keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.3);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
 }
 
 .animate-pulse-dot {
   animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.tg-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Breathing glow for the CISA banner */
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.tg-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* ========================================================================
+   BENTO GRID — holographic interface cards
+   ======================================================================== */
+
+.bento-item {
+  position: relative;
+  background: rgba(10, 18, 32, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+  will-change: transform;
+  cursor: default;
+}
+
+.bento-item:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(239, 68, 68, 0.04);
+}
+
+/* Animated SVG border — hidden until hover */
+.bento-item .animated-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.bento-item .animated-border rect {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.bento-item:hover .animated-border {
+  opacity: 1;
+}
+
+.bento-item:hover .animated-border rect {
+  animation: trace-border 2s ease forwards;
+}
+
+/* Spotlight — radial gradient follows cursor */
+.bento-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(239, 68, 68, 0.06),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.bento-item:hover .bento-spotlight {
+  opacity: 1;
+}
+
+/* Aurora — rotating conic gradient */
+.aurora-bg {
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(239, 68, 68, 0.03) 0deg,
+    rgba(59, 130, 246, 0.03) 120deg,
+    rgba(168, 85, 247, 0.03) 240deg,
+    rgba(239, 68, 68, 0.03) 360deg
+  );
+  animation: move-aurora 12s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.bento-item:hover .aurora-bg {
+  opacity: 1;
+}
+
+@keyframes move-aurora {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes trace-border {
+  0% { stroke-dashoffset: 1; }
+  100% { stroke-dashoffset: 0; }
 }

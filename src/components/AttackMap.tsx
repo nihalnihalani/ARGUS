@@ -5,8 +5,6 @@ import type { AttackArc } from '@/lib/types';
 
 interface AttackMapProps {
   arcs: AttackArc[];
-  width?: number;
-  height?: number;
 }
 
 const AttackMapInner = dynamic(() => import('./AttackMapInner'), {

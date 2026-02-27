@@ -10,13 +10,6 @@ import {
   Bug,
   X,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { GraphNode, GraphEdge } from "@/lib/types";
 
@@ -147,18 +140,18 @@ export default function SearchBar({
   );
 
   return (
-    <Card className="h-full flex flex-col bg-gray-900/50 border-gray-800 py-0 gap-0">
-      <CardHeader className="px-3 py-2.5 border-b border-gray-800 shrink-0">
-        <CardTitle className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-          <Search className="h-4 w-4 text-blue-400" />
+    <div className="tg-panel h-full flex flex-col">
+      <div className="tg-panel-header shrink-0">
+        <h3>
+          <Search className="h-3.5 w-3.5 text-[#54a0ff]" />
           Investigate
-        </CardTitle>
-      </CardHeader>
+        </h3>
+      </div>
 
-      <CardContent className="flex-1 p-3 overflow-hidden flex flex-col gap-3">
+      <div className="flex-1 p-3 overflow-hidden flex flex-col gap-3">
         {/* Search input */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#334155]" />
           <input
             type="text"
             value={query}
@@ -167,7 +160,20 @@ export default function SearchBar({
               if (e.key === "Enter") handleSearch(query);
             }}
             placeholder="Search CVE, IP, domain, threat actor..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-md pl-9 pr-9 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+            className="w-full rounded-lg pl-9 pr-9 py-2 text-[13px] text-[#e2e8f0] placeholder:text-[#334155] focus:outline-none transition-all duration-200"
+            style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.3)";
+              e.currentTarget.style.boxShadow = "inset 0 1px 2px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.1)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.06)";
+              e.currentTarget.style.boxShadow = "inset 0 1px 2px rgba(0, 0, 0, 0.2)";
+            }}
           />
           {query && (
             <button
@@ -178,40 +184,37 @@ export default function SearchBar({
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
-              <X className="h-4 w-4 text-gray-500 hover:text-gray-300" />
+              <X className="h-3.5 w-3.5 text-[#475569] hover:text-[#94a3b8] transition-colors" />
             </button>
           )}
         </div>
 
         {/* Quick action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => handleSearch("APT28")}
-            className="flex items-center gap-1 px-2 py-1 bg-gray-800/50 border border-gray-700 rounded text-[10px] text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors"
-          >
-            <Route className="h-3 w-3" />
-            Find Attack Path
-          </button>
-          <button
-            onClick={() => handleSearch("CVE-2026-1731")}
-            className="flex items-center gap-1 px-2 py-1 bg-gray-800/50 border border-gray-700 rounded text-[10px] text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors"
-          >
-            <Bug className="h-3 w-3" />
-            Scan CVE
-          </button>
-          <button
-            onClick={() => handleSearch("8.8.8.8")}
-            className="flex items-center gap-1 px-2 py-1 bg-gray-800/50 border border-gray-700 rounded text-[10px] text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors"
-          >
-            <Globe className="h-3 w-3" />
-            WHOIS Lookup
-          </button>
+          {[
+            { label: "Find Attack Path", icon: Route, query: "APT28" },
+            { label: "Scan CVE", icon: Bug, query: "CVE-2026-1731" },
+            { label: "WHOIS Lookup", icon: Globe, query: "8.8.8.8" },
+          ].map((action) => (
+            <button
+              key={action.label}
+              onClick={() => handleSearch(action.query)}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-[#475569] hover:text-[#94a3b8] transition-all duration-200"
+              style={{
+                background: "rgba(255, 255, 255, 0.02)",
+                border: "1px solid rgba(255, 255, 255, 0.04)",
+              }}
+            >
+              <action.icon className="h-3 w-3" />
+              {action.label}
+            </button>
+          ))}
         </div>
 
         {/* Recent searches */}
         {recentSearches.length > 0 && results.length === 0 && !isLoading && (
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-600 uppercase tracking-wider">
+            <span className="text-[9px] text-[#334155] uppercase tracking-[0.1em] font-semibold">
               Recent
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -222,7 +225,11 @@ export default function SearchBar({
                     setQuery(s);
                     handleSearch(s);
                   }}
-                  className="px-2 py-0.5 bg-gray-800 rounded text-[10px] text-gray-400 hover:text-gray-200 transition-colors"
+                  className="px-2 py-0.5 rounded text-[10px] text-[#64748b] hover:text-[#e2e8f0] transition-colors"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.02)",
+                    border: "1px solid rgba(255, 255, 255, 0.04)",
+                  }}
                 >
                   {s}
                 </button>
@@ -238,18 +245,23 @@ export default function SearchBar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center py-8 text-gray-500"
+              className="flex items-center justify-center py-8 text-[#475569]"
             >
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              <span className="text-sm">Investigating...</span>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-xs font-mono">Investigating...</span>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-md p-2.5">
-            <p className="text-xs text-red-400">{error}</p>
+          <div className="rounded-lg p-2.5"
+            style={{
+              background: "rgba(255, 59, 59, 0.05)",
+              border: "1px solid rgba(255, 59, 59, 0.12)",
+            }}
+          >
+            <p className="text-[11px] text-[#ff3b3b]">{error}</p>
           </div>
         )}
 
@@ -262,32 +274,32 @@ export default function SearchBar({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="bg-gray-800/50 rounded-md p-3 space-y-2"
+                className="rounded-lg p-3 space-y-2"
+                style={{
+                  background: "rgba(255, 255, 255, 0.02)",
+                  border: "1px solid rgba(255, 255, 255, 0.04)",
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-200">
+                  <span className="text-[13px] font-medium text-[#e2e8f0]">
                     {result.title}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] text-gray-500 border-gray-700"
-                  >
+                  <span className="text-[9px] font-mono text-[#475569] px-1.5 py-0 rounded border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)]">
                     {result.type}
-                  </Badge>
+                  </span>
                 </div>
-                <p className="text-xs text-gray-400">{result.description}</p>
+                <p className="text-[11px] text-[#64748b]">{result.description}</p>
 
                 {result.nodes && (
-                  <p className="text-[10px] text-gray-500">
-                    Found {result.nodes.length} nodes, {result.edges?.length || 0}{" "}
-                    edges
+                  <p className="text-[10px] text-[#475569] font-mono">
+                    {result.nodes.length} nodes, {result.edges?.length || 0} edges
                   </p>
                 )}
 
                 {result.taskId && onViewTrajectory && (
                   <button
                     onClick={() => onViewTrajectory(result.taskId!)}
-                    className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300"
+                    className="flex items-center gap-1 text-[10px] text-[#54a0ff] hover:text-[#748ffc] transition-colors"
                   >
                     <Route className="h-3 w-3" />
                     View Trajectory
@@ -297,7 +309,7 @@ export default function SearchBar({
             ))}
           </AnimatePresence>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

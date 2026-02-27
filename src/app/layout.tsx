@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "ThreatGraph — Autonomous Cyber Threat Intelligence",
+  title: "ARGUS — Autonomous Threat Intelligence",
   description:
-    "Live knowledge graph of cyber threats with autonomous scouting, enrichment, and AI-powered executive briefings. Built for the Autonomous Agents Hackathon.",
+    "The all-seeing eye of cyber defense. Autonomous AI scouts continuously monitor, analyze, and visualize the global threat landscape.",
 };
 
 export default function RootLayout({
@@ -25,22 +28,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-[#030712] text-gray-50`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} antialiased`}
+        style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif" }}
       >
+        <ThemeProvider>
         {children}
         <Toaster
           theme="dark"
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "#1f2937",
-              border: "1px solid #374151",
-              color: "#f9fafb",
+              background: "rgba(15, 23, 42, 0.95)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(239, 68, 68, 0.15)",
+              color: "#e2e8f0",
+              fontFamily: "var(--font-outfit)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.03)",
             },
           }}
         />
+        </ThemeProvider>
       </body>
     </html>
   );

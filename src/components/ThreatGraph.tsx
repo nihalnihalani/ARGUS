@@ -57,10 +57,9 @@ interface NodeStyle {
 function getNodeStyle(node: GraphNode): NodeStyle {
   switch (node.type) {
     case 'ThreatActor':
-      return { color: '#ef4444', radius: 16, shape: 'crosshair-circle' };
+      return { color: '#ff4757', radius: 16, shape: 'crosshair-circle' };
     case 'Vulnerability': {
       const cvss = node.cvss ?? 5;
-      // Red for high CVSS, green for low
       const t = Math.min(cvss / 10, 1);
       const r = Math.round(34 + (239 - 34) * t);
       const g = Math.round(197 - (197 - 68) * t);
@@ -68,19 +67,19 @@ function getNodeStyle(node: GraphNode): NodeStyle {
       return { color: `rgb(${r},${g},${b})`, radius: 8 + (cvss ?? 5), shape: 'circle' };
     }
     case 'Exploit':
-      return { color: '#f97316', radius: 8, shape: 'diamond' };
+      return { color: '#ff9f43', radius: 8, shape: 'diamond' };
     case 'Software':
-      return { color: '#3b82f6', radius: 12, shape: 'rounded-rect' };
+      return { color: '#54a0ff', radius: 12, shape: 'rounded-rect' };
     case 'Organization':
-      return { color: '#22c55e', radius: 16, shape: 'hexagon' };
+      return { color: '#2ed573', radius: 16, shape: 'hexagon' };
     case 'Malware':
-      return { color: '#a855f7', radius: 12, shape: 'triangle' };
+      return { color: '#c56cf0', radius: 12, shape: 'triangle' };
     case 'Campaign':
-      return { color: '#eab308', radius: 12, shape: 'pentagon' };
+      return { color: '#ffdd57', radius: 12, shape: 'pentagon' };
     case 'AttackTechnique':
-      return { color: '#6b7280', radius: 8, shape: 'small-circle' };
+      return { color: '#778ca3', radius: 8, shape: 'small-circle' };
     default:
-      return { color: '#6b7280', radius: 8, shape: 'circle' };
+      return { color: '#778ca3', radius: 8, shape: 'circle' };
   }
 }
 
@@ -97,7 +96,7 @@ function getShapePath(shape: NodeStyle['shape'], radius: number): string | null 
     case 'rounded-rect':
       return roundedRectPath(radius * 2, radius * 1.5, 4);
     default:
-      return null; // circles rendered as <circle>
+      return null;
   }
 }
 
@@ -132,7 +131,6 @@ interface ThreatGraphProps {
   height?: number;
 }
 
-// --- Simulation node type (extends GraphNode with D3 sim fields) ---
 interface SimNode extends GraphNode {
   x: number;
   y: number;
@@ -199,7 +197,7 @@ export default function ThreatGraph({
   const w = dimensions.width;
   const h = dimensions.height;
 
-  // Build / update simulation when nodes or edges change
+  // Build / update simulation
   useEffect(() => {
     if (nodes.length === 0) return;
 
@@ -212,7 +210,6 @@ export default function ThreatGraph({
     const newSimNodes: SimNode[] = nodes.map((n) => {
       const existing = existingMap.get(n.id);
       if (existing) {
-        // preserve position
         return { ...n, x: existing.x, y: existing.y, fx: existing.fx, fy: existing.fy } as SimNode;
       }
       return { ...n, x: w / 2 + (Math.random() - 0.5) * 200, y: h / 2 + (Math.random() - 0.5) * 200 } as SimNode;
@@ -229,7 +226,6 @@ export default function ThreatGraph({
         isAttackPath: e.isAttackPath,
       }));
 
-    // Stop old sim
     if (simulationRef.current) simulationRef.current.stop();
 
     const sim = d3
@@ -341,7 +337,6 @@ export default function ThreatGraph({
   const attackEdgeSet = useMemo(() => new Set(attackPath?.edges ?? []), [attackPath]);
   const isAttackMode = attackPath != null && (attackNodeSet.size > 0 || attackEdgeSet.size > 0);
 
-  // Node click handler
   const handleNodeClick = useCallback(
     (e: React.MouseEvent, node: GraphNode) => {
       e.stopPropagation();
@@ -351,7 +346,6 @@ export default function ThreatGraph({
     [onNodeClick]
   );
 
-  // Node hover handler
   const handleNodeHover = useCallback(
     (e: React.MouseEvent, node: GraphNode | null) => {
       if (node) {
@@ -364,7 +358,6 @@ export default function ThreatGraph({
     [onNodeHover]
   );
 
-  // Build edge key for attack path matching
   const edgeKey = useCallback((link: SimLink): string => {
     const s = typeof link.source === 'string' ? link.source : link.source.id;
     const t = typeof link.target === 'string' ? link.target : link.target.id;
@@ -377,7 +370,6 @@ export default function ThreatGraph({
       const key = edgeKey(link);
       if (attackEdgeSet.has(key)) return true;
       if (link.isAttackPath) return true;
-      // Also check reverse
       const s = typeof link.source === 'string' ? link.source : link.source.id;
       const t = typeof link.target === 'string' ? link.target : link.target.id;
       return attackEdgeSet.has(`${t}->${s}`);
@@ -394,14 +386,14 @@ export default function ThreatGraph({
       const isSelected = selectedNodeId === node.id;
       const isNewNode = node.isNew;
 
-      const opacity = dimmed ? 0.15 : 1;
+      const opacity = dimmed ? 0.12 : 1;
       const filter = isAttackMode && inPath ? 'url(#attackGlow)' : isSelected ? 'url(#glow)' : undefined;
 
       const groupProps = {
         key: node.id,
         transform: `translate(${node.x},${node.y})`,
         opacity,
-        style: { cursor: 'grab', transition: 'opacity 0.4s ease' } as React.CSSProperties,
+        style: { cursor: 'grab', transition: 'opacity 0.5s ease' } as React.CSSProperties,
         onMouseDown: (e: React.MouseEvent) => handleDragStart(e, node),
         onClick: (e: React.MouseEvent) => handleNodeClick(e, node),
         onMouseEnter: (e: React.MouseEvent) => handleNodeHover(e, node),
@@ -410,9 +402,7 @@ export default function ThreatGraph({
 
       const shapeElements: React.ReactNode[] = [];
 
-      // Shape
       if (style.shape === 'crosshair-circle') {
-        // ThreatActor: circle with crosshair
         shapeElements.push(
           <circle key="body" r={style.radius} fill={style.color} fillOpacity={0.8} stroke={style.color} strokeWidth={2} filter={filter} />,
           <line key="h" x1={-style.radius * 0.6} x2={style.radius * 0.6} y1={0} y2={0} stroke="rgba(255,255,255,0.6)" strokeWidth={1} />,
@@ -432,7 +422,6 @@ export default function ThreatGraph({
         }
       }
 
-      // Label: show for ThreatActor, Organization, or when selected, or when not in attack mode
       const showLabel =
         node.type === 'ThreatActor' ||
         node.type === 'Organization' ||
@@ -446,10 +435,11 @@ export default function ThreatGraph({
             key="label"
             y={style.radius + 14}
             textAnchor="middle"
-            fill="#f9fafb"
+            fill="#e2e8f0"
             fontSize={10}
             fontFamily="var(--font-sans), sans-serif"
-            style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+            fontWeight={500}
+            style={{ pointerEvents: 'none', textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)' }}
           >
             {truncate(node.name, 14)}
           </text>
@@ -484,7 +474,7 @@ export default function ThreatGraph({
             x2={tgt.x}
             y2={tgt.y}
             className="attack-path-edge"
-            style={{ transition: 'opacity 0.4s ease' }}
+            style={{ transition: 'opacity 0.5s ease' }}
           />
         );
       }
@@ -496,23 +486,22 @@ export default function ThreatGraph({
           y1={src.y}
           x2={tgt.x}
           y2={tgt.y}
-          stroke="#374151"
+          stroke="rgba(255, 255, 255, 0.06)"
           strokeWidth={1}
-          strokeOpacity={dimmed ? 0.05 : 0.4}
+          strokeOpacity={dimmed ? 0.03 : 1}
           className={dimmed ? '' : 'animate-flow'}
-          style={{ transition: 'opacity 0.4s ease, stroke-opacity 0.4s ease' }}
+          style={{ transition: 'opacity 0.5s ease, stroke-opacity 0.5s ease' }}
         />
       );
     },
     [isAttackMode, isEdgeInPath]
   );
 
-  // Tooltip content
   const tooltipInfo = tooltip ? getTooltipContent(tooltip.node) : null;
   const tooltipStyle = tooltip ? getNodeStyle(tooltip.node) : null;
 
   return (
-    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-[#030712] rounded-lg border border-[#374151]">
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden" style={{ background: '#060a13' }}>
       <svg
         ref={svgRef}
         width={w}
@@ -536,11 +525,16 @@ export default function ThreatGraph({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          {/* Subtle radial gradient background */}
+          <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.03)" />
+            <stop offset="100%" stopColor="rgba(6, 10, 19, 0)" />
+          </radialGradient>
         </defs>
+        {/* Background gradient */}
+        <rect width={w} height={h} fill="url(#bgGrad)" />
         <g transform={transform.toString()}>
-          {/* Edges */}
           <g>{simLinks.map(renderEdge)}</g>
-          {/* Nodes */}
           <g>{simNodes.map(renderNode)}</g>
         </g>
       </svg>
@@ -548,40 +542,58 @@ export default function ThreatGraph({
       {/* Tooltip */}
       {tooltip && tooltipInfo && tooltipStyle && (
         <div
-          className="absolute pointer-events-none z-50 bg-[#1f2937] border border-[#374151] rounded-lg px-3 py-2 shadow-xl max-w-[220px]"
+          className="absolute pointer-events-none z-50 max-w-[220px]"
           style={{
             left: tooltip.x - (containerRef.current?.getBoundingClientRect().left ?? 0) + 12,
             top: tooltip.y - (containerRef.current?.getBoundingClientRect().top ?? 0) - 10,
+            background: 'rgba(10, 18, 32, 0.9)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: '10px',
+            padding: '8px 12px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.02)',
           }}
         >
           <div className="flex items-center gap-2 mb-1">
             <span
-              className="inline-block w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: tooltipStyle.color }}
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ backgroundColor: tooltipStyle.color, boxShadow: `0 0 6px ${tooltipStyle.color}60` }}
             />
-            <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: tooltipStyle.color }}>
+            <span className="text-[9px] font-mono uppercase tracking-[0.1em]" style={{ color: tooltipStyle.color }}>
               {tooltipInfo.type}
             </span>
           </div>
-          <div className="text-sm font-semibold text-[#f9fafb] mb-1">{tooltipInfo.name}</div>
+          <div className="text-[13px] font-semibold text-[#e2e8f0] mb-1">{tooltipInfo.name}</div>
           {tooltipInfo.details.map((d, i) => (
-            <div key={i} className="text-xs text-[#9ca3af]">
+            <div key={i} className="text-[11px] text-[#64748b]">
               {d}
             </div>
           ))}
-          <div className="text-[10px] text-[#6b7280] mt-1.5 italic">Click to expand connections</div>
+          <div className="text-[9px] text-[#334155] mt-1.5 italic">Click to expand</div>
         </div>
       )}
 
       {/* Legend */}
       {!isAttackMode && nodes.length > 0 && (
-        <div className="absolute bottom-3 left-3 bg-[#1f2937]/90 border border-[#374151] rounded-lg p-2 text-[10px]">
+        <div
+          className="absolute bottom-3 left-3 p-2.5 text-[10px]"
+          style={{
+            background: 'rgba(10, 18, 32, 0.8)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.04)',
+            borderRadius: '10px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+          }}
+        >
           {(['ThreatActor', 'Vulnerability', 'Exploit', 'Software', 'Organization', 'Malware', 'Campaign', 'AttackTechnique'] as NodeType[]).map((type) => {
             const style = getNodeStyle({ id: '', type, name: '' });
             return (
-              <div key={type} className="flex items-center gap-1.5 mb-0.5">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: style.color }} />
-                <span className="text-[#9ca3af]">{type}</span>
+              <div key={type} className="flex items-center gap-1.5 mb-0.5 last:mb-0">
+                <span
+                  className="inline-block w-2 h-2 rounded-full"
+                  style={{ backgroundColor: style.color, boxShadow: `0 0 4px ${style.color}40` }}
+                />
+                <span className="text-[#64748b]">{type}</span>
               </div>
             );
           })}
@@ -592,8 +604,8 @@ export default function ThreatGraph({
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-[#6b7280] text-sm mb-2">Loading threat graph...</div>
-            <div className="w-8 h-8 border-2 border-[#374151] border-t-[#ef4444] rounded-full animate-spin mx-auto" />
+            <div className="text-[#475569] text-xs mb-3 font-mono">Loading threat graph...</div>
+            <div className="w-8 h-8 border-2 border-[rgba(255,255,255,0.06)] border-t-[#ff3b3b] rounded-full animate-spin mx-auto" />
           </div>
         </div>
       )}

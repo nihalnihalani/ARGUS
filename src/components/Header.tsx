@@ -1,17 +1,15 @@
 "use client";
 
-import { Shield, RefreshCw } from "lucide-react";
-import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
+import { Shield, RefreshCw, Zap } from "lucide-react";
 import GraphStats from "@/components/GraphStats";
 import type { GraphStats as GraphStatsType } from "@/lib/types";
 
 const threatLevelColors: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400 border-red-500/50",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/50",
-  elevated: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-  moderate: "bg-blue-500/20 text-blue-400 border-blue-500/50",
-  low: "bg-green-500/20 text-green-400 border-green-500/50",
+  critical: "bg-red-500/20 text-red-400 border-red-500/40",
+  high: "bg-orange-500/20 text-orange-400 border-orange-500/40",
+  elevated: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
+  moderate: "bg-blue-500/20 text-blue-400 border-blue-500/40",
+  low: "bg-green-500/20 text-green-400 border-green-500/40",
 };
 
 interface HeaderProps {
@@ -19,6 +17,8 @@ interface HeaderProps {
   threatLevel: string;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  isDemoMode?: boolean;
+  onToggleDemo?: () => void;
 }
 
 export default function Header({
@@ -26,54 +26,78 @@ export default function Header({
   threatLevel,
   onRefresh,
   isRefreshing,
+  isDemoMode,
+  onToggleDemo,
 }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-gray-950/80 backdrop-blur-md border-b border-gray-800 z-50">
-      {/* Left: Logo */}
-      <div className="flex items-center gap-2.5 shrink-0">
-        <Shield className="h-6 w-6 text-red-500" />
-        <span className="text-lg font-bold tracking-tight text-gray-50">
-          ThreatGraph
-        </span>
-      </div>
-
-      {/* Center: CISA Banner */}
-      <div className="flex items-center gap-3">
-        <motion.div
-          className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-red-500/10 border border-red-500/30"
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-          </span>
-          <span className="text-xs font-mono font-semibold text-red-400 tracking-wider uppercase">
-            CISA Monitoring Suspended — Automated Threat Watch Active
-          </span>
-        </motion.div>
-
-        <Badge
-          className={`text-[10px] font-mono uppercase border ${
+    <header
+      className="relative flex items-center justify-between px-6 py-3 z-50 border-b border-white/[0.04] bg-[#060a13]/80 backdrop-blur-xl shadow-md"
+    >
+      {/* Left: Context / Threat Level */}
+      <div className="flex items-center gap-4 shrink-0">
+        <span
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-mono uppercase tracking-widest border shadow-sm ${
             threatLevelColors[threatLevel] || threatLevelColors.moderate
           }`}
         >
+          <Zap className="h-3 w-3" />
           {threatLevel}
-        </Badge>
+        </span>
+
+        <div
+          className="flex items-center gap-2 px-3 py-1 rounded-md border"
+          style={{
+            background: "rgba(239, 68, 68, 0.05)",
+            borderColor: "rgba(239, 68, 68, 0.1)",
+          }}
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+          </span>
+          <span
+            className="text-[10px] font-semibold text-red-400/80 tracking-widest uppercase"
+            style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+          >
+            CISA DOWN — Auto Watch
+          </span>
+        </div>
       </div>
 
-      {/* Right: Stats + Refresh */}
-      <div className="flex items-center gap-3 shrink-0">
-        <GraphStats stats={stats} />
+      {/* Center: Stats */}
+      <GraphStats stats={stats} />
+
+      {/* Right: Controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        {onToggleDemo && (
+          <button
+            onClick={onToggleDemo}
+            className={`px-2.5 py-1 rounded-md text-[9px] font-mono uppercase tracking-[0.1em] border transition-all duration-200 ${
+              isDemoMode
+                ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.08)]"
+                : "text-[#475569] border-[rgba(255,255,255,0.04)] hover:text-[#94a3b8] hover:border-[rgba(255,255,255,0.08)]"
+            }`}
+            style={{
+              background: isDemoMode
+                ? undefined
+                : "rgba(255, 255, 255, 0.02)",
+            }}
+            title="Toggle demo mode"
+          >
+            DEMO
+          </button>
+        )}
+
         {onRefresh && (
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="p-1.5 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded-md transition-all duration-200 disabled:opacity-40 hover:bg-white/[0.03]"
+            style={{ border: "1px solid rgba(255, 255, 255, 0.04)" }}
             title="Refresh data"
           >
             <RefreshCw
-              className={`h-4 w-4 text-gray-400 ${
+              className={`h-3.5 w-3.5 text-[#64748b] ${
                 isRefreshing ? "animate-spin" : ""
               }`}
             />

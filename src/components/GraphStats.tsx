@@ -40,7 +40,7 @@ function AnimatedNumber({ value }: { value: number }) {
   }, [value]);
 
   return (
-    <span ref={ref} className="font-mono font-bold text-gray-50">
+    <span ref={ref} className="tg-stat-value">
       {value.toLocaleString()}
     </span>
   );
@@ -56,58 +56,61 @@ export default function GraphStats({ stats }: GraphStatsProps) {
       icon: CircuitBoard,
       label: "Nodes",
       value: stats.nodeCount,
-      color: "text-blue-400",
+      color: "#54a0ff",
     },
     {
       icon: GitBranch,
       label: "Edges",
       value: stats.edgeCount,
-      color: "text-gray-400",
+      color: "#64748b",
     },
     {
       icon: Skull,
       label: "Actors",
       value: stats.threatActorCount,
-      color: "text-red-400",
+      color: "#ff4757",
     },
     {
       icon: Bug,
       label: "Vulns",
       value: stats.vulnerabilityCount,
-      color: "text-orange-400",
+      color: "#ff6348",
     },
     {
       icon: AlertTriangle,
       label: "Critical",
       value: stats.criticalCount,
-      color: "text-red-500",
+      color: "#ff3b3b",
       glow: stats.criticalCount > 0,
     },
     {
       icon: Radio,
       label: "Scouts",
       value: stats.activeScouts,
-      color: "text-green-400",
+      color: "#2ed573",
     },
   ];
 
   return (
-    <div className="flex items-center gap-4 text-xs">
+    <div className="flex items-center gap-2">
       {items.map((item) => (
         <div
           key={item.label}
-          className={`flex items-center gap-1.5 ${
-            item.glow ? "animate-pulse-glow rounded-md px-1.5 py-0.5" : ""
+          className={`tg-stat ${
+            item.glow ? "animate-pulse-glow" : ""
           }`}
         >
-          <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+          <item.icon
+            className="tg-stat-icon"
+            style={{ color: item.color }}
+          />
           <AnimatedNumber value={item.value} />
-          <span className="text-gray-500">{item.label}</span>
+          <span style={{ color: "#64748b" }}>{item.label}</span>
         </div>
       ))}
       {stats.lastUpdate && (
-        <span className="text-gray-600 font-mono text-[10px]">
-          Updated {stats.lastUpdate}
+        <span className="text-[9px] font-mono text-[#334155] ml-1">
+          {stats.lastUpdate}
         </span>
       )}
     </div>

@@ -1,262 +1,269 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { DeckGL } from '@deck.gl/react';
-import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
-import { HeatmapLayer } from '@deck.gl/aggregation-layers';
-import { Map as MapLibreMap } from 'react-map-gl/maplibre';
-import type { MapViewState, PickingInfo } from '@deck.gl/core';
+import { useMemo } from 'react';
+import {
+  Map as MapComponent,
+  MapMarker,
+  MarkerContent,
+  MarkerTooltip,
+  MapControls,
+  MapRoute,
+} from '@/components/ui/map';
 import type { AttackArc } from '@/lib/types';
-import 'maplibre-gl/dist/maplibre-gl.css';
 
-// --- Severity to RGBA ---
+// --- Severity config ---
 
-function severityToColor(severity: string): [number, number, number, number] {
-  switch (severity) {
-    case 'critical':
-      return [239, 68, 68, 255];
-    case 'high':
-      return [249, 115, 22, 255];
-    case 'medium':
-      return [234, 179, 8, 255];
-    case 'low':
-      return [34, 197, 94, 255];
-    default:
-      return [107, 114, 128, 255];
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: '#ef4444',
+  high: '#f97316',
+  medium: '#eab308',
+  low: '#22c55e',
+};
+
+const SEVERITY_RING: Record<string, string> = {
+  critical: 'ring-red-500/60',
+  high: 'ring-orange-500/50',
+  medium: 'ring-yellow-500/40',
+  low: 'ring-green-500/40',
+};
+
+const SEVERITY_BG: Record<string, string> = {
+  critical: 'bg-red-500',
+  high: 'bg-orange-500',
+  medium: 'bg-yellow-500',
+  low: 'bg-green-500',
+};
+
+const SEVERITY_BADGE: Record<string, string> = {
+  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
+  high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  low: 'bg-green-500/20 text-green-400 border-green-500/30',
+};
+
+// --- Great circle interpolation ---
+
+function toRad(deg: number) { return (deg * Math.PI) / 180; }
+function toDeg(rad: number) { return (rad * 180) / Math.PI; }
+
+function greatCirclePoints(
+  lon1: number, lat1: number,
+  lon2: number, lat2: number,
+  steps = 64
+): [number, number][] {
+  const φ1 = toRad(lat1), λ1 = toRad(lon1);
+  const φ2 = toRad(lat2), λ2 = toRad(lon2);
+  const d = 2 * Math.asin(
+    Math.sqrt(
+      Math.sin((φ2 - φ1) / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2
+    )
+  );
+  if (d < 1e-10) return [[lon1, lat1], [lon2, lat2]];
+
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps;
+    const a = Math.sin((1 - f) * d) / Math.sin(d);
+    const b = Math.sin(f * d) / Math.sin(d);
+    const x = a * Math.cos(φ1) * Math.cos(λ1) + b * Math.cos(φ2) * Math.cos(λ2);
+    const y = a * Math.cos(φ1) * Math.sin(λ1) + b * Math.cos(φ2) * Math.sin(λ2);
+    const z = a * Math.sin(φ1) + b * Math.sin(φ2);
+    coords.push([toDeg(Math.atan2(y, x)), toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)))]);
   }
+  return coords;
 }
 
-// --- Point data for scatter/heatmap ---
+// --- Dedup points ---
 
 interface PointData {
   lon: number;
   lat: number;
   isTarget: boolean;
   name: string;
-  severity?: string;
+  severity: string;
+  cves: string[];
+}
+
+function derivePoints(arcs: AttackArc[]): PointData[] {
+  const origins = new Map<string, PointData>();
+  const targets = new Map<string, PointData>();
+
+  for (const arc of arcs) {
+    const oKey = `${arc.sourceLat},${arc.sourceLon}`;
+    if (!origins.has(oKey)) {
+      origins.set(oKey, {
+        lon: arc.sourceLon, lat: arc.sourceLat,
+        isTarget: false, name: arc.actorName,
+        severity: arc.severity, cves: arc.cves,
+      });
+    }
+    const tKey = `${arc.targetLat},${arc.targetLon}`;
+    if (!targets.has(tKey)) {
+      targets.set(tKey, {
+        lon: arc.targetLon, lat: arc.targetLat,
+        isTarget: true, name: arc.targetOrg,
+        severity: arc.severity, cves: arc.cves,
+      });
+    }
+  }
+
+  return [...origins.values(), ...targets.values()];
 }
 
 // --- Props ---
 
 interface AttackMapProps {
   arcs: AttackArc[];
-  width?: number;
-  height?: number;
 }
 
-const INITIAL_VIEW_STATE: MapViewState = {
-  latitude: 30,
-  longitude: -20,
-  zoom: 1.5,
-  pitch: 35,
-  bearing: 0,
-};
+export default function AttackMapInner({ arcs }: AttackMapProps) {
+  const points = useMemo(() => derivePoints(arcs), [arcs]);
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-
-export default function AttackMapInner({ arcs, width, height }: AttackMapProps) {
-  const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE);
-  const [animationTime, setAnimationTime] = useState(0);
-  const rafRef = useRef<number>(0);
-
-  // Pulse animation loop
-  useEffect(() => {
-    let running = true;
-    const tick = () => {
-      if (!running) return;
-      setAnimationTime((t) => t + 1);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      running = false;
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  // Derive points from arcs
-  const points = useMemo<PointData[]>(() => {
-    const originMap = new Map<string, PointData>();
-    const targetMap = new Map<string, PointData>();
-    for (const arc of arcs) {
-      const oKey = `${arc.sourceLat},${arc.sourceLon}`;
-      if (!originMap.has(oKey)) {
-        originMap.set(oKey, {
-          lon: arc.sourceLon,
-          lat: arc.sourceLat,
-          isTarget: false,
-          name: arc.actorName,
-          severity: arc.severity,
-        });
-      }
-      const tKey = `${arc.targetLat},${arc.targetLon}`;
-      if (!targetMap.has(tKey)) {
-        targetMap.set(tKey, {
-          lon: arc.targetLon,
-          lat: arc.targetLat,
-          isTarget: true,
-          name: arc.targetOrg,
-          severity: arc.severity,
-        });
-      }
-    }
-    return [...originMap.values(), ...targetMap.values()];
-  }, [arcs]);
-
-  const origins = useMemo(() => points.filter((p) => !p.isTarget), [points]);
-
-  // Pulse factor for scatterplot radius
-  const pulseFactor = 1 + 0.3 * Math.sin(animationTime * 0.05);
-
-  // Build layers
-  const layers = useMemo(() => {
-    const result = [];
-
-    // Heatmap (origins only)
-    if (origins.length > 0) {
-      result.push(
-        new HeatmapLayer<PointData>({
-          id: 'threat-heatmap',
-          data: origins,
-          getPosition: (d) => [d.lon, d.lat],
-          getWeight: 1,
-          radiusPixels: 60,
-          intensity: 1,
-          threshold: 0.1,
-          colorRange: [
-            [255, 255, 178],
-            [254, 204, 92],
-            [253, 141, 60],
-            [240, 59, 32],
-            [189, 0, 38],
-          ],
-        })
-      );
-    }
-
-    // Arc layer
-    if (arcs.length > 0) {
-      result.push(
-        new ArcLayer<AttackArc>({
-          id: 'attack-arcs',
-          data: arcs,
-          getSourcePosition: (d) => [d.sourceLon, d.sourceLat],
-          getTargetPosition: (d) => [d.targetLon, d.targetLat],
-          getSourceColor: (d) => severityToColor(d.severity),
-          getTargetColor: [255, 0, 0, 200],
-          getWidth: 2,
-          getHeight: 0.5,
-          greatCircle: true,
-          pickable: true,
-        })
-      );
-    }
-
-    // Scatterplot (pulsing dots)
-    if (points.length > 0) {
-      result.push(
-        new ScatterplotLayer<PointData>({
-          id: 'threat-origins',
-          data: points,
-          getPosition: (d) => [d.lon, d.lat],
-          getFillColor: (d) =>
-            d.isTarget ? [34, 197, 94, 200] : [239, 68, 68, 200],
-          getRadius: (d) => {
-            const baseRadius = d.isTarget ? 50000 : 30000;
-            return baseRadius * pulseFactor;
-          },
-          radiusMinPixels: 4,
-          radiusMaxPixels: 15,
-          pickable: true,
-          updateTriggers: {
-            getRadius: [pulseFactor],
-          },
-        })
-      );
-    }
-
-    return result;
-  }, [arcs, points, origins, pulseFactor]);
-
-  // Tooltip
-  const getTooltip = useCallback(({ object, layer }: PickingInfo) => {
-    if (!object) return null;
-    if (layer?.id === 'attack-arcs') {
-      const arc = object as AttackArc;
-      return {
-        html: `<div style="padding:8px;max-width:240px">
-          <div style="font-weight:600;margin-bottom:4px;color:#f9fafb">${arc.actorName} → ${arc.targetOrg}</div>
-          <div style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;background:${
-            arc.severity === 'critical'
-              ? '#ef4444'
-              : arc.severity === 'high'
-              ? '#f97316'
-              : arc.severity === 'medium'
-              ? '#eab308'
-              : '#22c55e'
-          };color:#fff;margin-bottom:4px">${arc.severity.toUpperCase()}</div>
-          ${arc.cves.length > 0 ? `<div style="font-size:11px;color:#9ca3af;margin-top:4px">${arc.cves.join(', ')}</div>` : ''}
-        </div>`,
-        style: {
-          backgroundColor: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '8px',
-          color: '#f9fafb',
-          fontSize: '12px',
-        },
-      };
-    }
-    if (layer?.id === 'threat-origins') {
-      const pt = object as PointData;
-      return {
-        html: `<div style="padding:6px">
-          <div style="font-weight:600;color:#f9fafb">${pt.name}</div>
-          <div style="font-size:11px;color:#9ca3af">${pt.isTarget ? 'Target' : 'Threat Origin'}</div>
-        </div>`,
-        style: {
-          backgroundColor: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '8px',
-          color: '#f9fafb',
-          fontSize: '12px',
-        },
-      };
-    }
-    return null;
-  }, []);
+  const arcRoutes = useMemo(
+    () =>
+      arcs.map((arc) => ({
+        id: arc.id,
+        color: SEVERITY_COLORS[arc.severity] ?? '#6b7280',
+        coords: greatCirclePoints(
+          arc.sourceLon, arc.sourceLat,
+          arc.targetLon, arc.targetLat
+        ),
+      })),
+    [arcs]
+  );
 
   return (
-    <div
-      className="relative w-full h-full overflow-hidden rounded-lg border border-[#374151]"
-      style={{ width: width ?? '100%', height: height ?? '100%' }}
-    >
-      <DeckGL
-        viewState={viewState}
-        onViewStateChange={(e) => setViewState(e.viewState as MapViewState)}
-        controller={true}
-        layers={layers}
-        getTooltip={getTooltip}
+    <div className="relative w-full h-full overflow-hidden" style={{ background: '#060a13' }}>
+      <MapComponent
+        center={[-20, 30]}
+        zoom={1.5}
+        pitch={15}
+        maxPitch={60}
       >
-        <MapLibreMap mapStyle={MAP_STYLE} />
-      </DeckGL>
+        {/* Controls */}
+        <MapControls
+          position="bottom-right"
+          showZoom
+          showCompass
+          showFullscreen
+        />
+
+        {/* Great circle arc routes */}
+        {arcRoutes.map((route) => (
+          <MapRoute
+            key={route.id}
+            coordinates={route.coords}
+            color={route.color}
+            width={2}
+            opacity={0.7}
+          />
+        ))}
+
+        {/* Origin + target markers */}
+        {points.map((pt) => (
+          <MapMarker
+            key={`${pt.name}-${pt.lon}-${pt.lat}`}
+            longitude={pt.lon}
+            latitude={pt.lat}
+          >
+            <MarkerContent>
+              {pt.isTarget ? (
+                <TargetMarker severity={pt.severity} />
+              ) : (
+                <OriginMarker severity={pt.severity} />
+              )}
+            </MarkerContent>
+            <MarkerTooltip
+              className="!bg-[#1f2937] !text-gray-100 border border-[#374151] !px-3 !py-2 shadow-xl"
+            >
+              <div className="flex flex-col gap-1">
+                <div className="font-semibold text-[11px] text-gray-50">{pt.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-mono uppercase border ${SEVERITY_BADGE[pt.severity] ?? ''}`}
+                  >
+                    {pt.severity}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {pt.isTarget ? 'Target' : 'Threat Origin'}
+                  </span>
+                </div>
+                {pt.cves.length > 0 && (
+                  <div className="text-[10px] text-gray-500 font-mono">
+                    {pt.cves.join(', ')}
+                  </div>
+                )}
+              </div>
+            </MarkerTooltip>
+          </MapMarker>
+        ))}
+      </MapComponent>
 
       {/* Empty state */}
       {arcs.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <div className="text-[#6b7280] text-sm">No attack arcs to display</div>
-            <div className="text-[#4b5563] text-xs mt-1">Threat data will appear when available</div>
+            <div className="text-[#4b5563] text-xs mt-1">
+              Threat data will appear when available
+            </div>
           </div>
         </div>
       )}
 
       {/* Stats overlay */}
       {arcs.length > 0 && (
-        <div className="absolute top-3 right-3 bg-[#1f2937]/80 border border-[#374151] rounded-lg px-2.5 py-1.5 text-[10px] pointer-events-none">
-          <div className="text-[#ef4444] font-mono">{arcs.length} active arcs</div>
-          <div className="text-[#9ca3af]">{points.filter((p) => !p.isTarget).length} origins / {points.filter((p) => p.isTarget).length} targets</div>
+        <div className="absolute top-3 right-3 pointer-events-none z-10 rounded-lg px-3 py-2"
+          style={{ background: 'rgba(10, 18, 32, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.04)' }}
+        >
+          <div className="text-[#ef4444] font-mono text-[11px] font-semibold">
+            {arcs.length} active arc{arcs.length !== 1 ? 's' : ''}
+          </div>
+          <div className="text-[#9ca3af] text-[10px]">
+            {points.filter((p) => !p.isTarget).length} origins /{' '}
+            {points.filter((p) => p.isTarget).length} targets
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Marker components ---
+
+function OriginMarker({ severity }: { severity: string }) {
+  return (
+    <div className="relative flex items-center justify-center">
+      {/* Pulse ring */}
+      <span
+        className={`absolute h-6 w-6 rounded-full animate-ping opacity-40 ${SEVERITY_BG[severity] ?? 'bg-gray-500'}`}
+      />
+      {/* Outer ring */}
+      <span
+        className={`absolute h-5 w-5 rounded-full ring-2 ${SEVERITY_RING[severity] ?? 'ring-gray-500/40'} bg-transparent`}
+      />
+      {/* Inner dot */}
+      <span
+        className={`relative h-3 w-3 rounded-full shadow-lg ${SEVERITY_BG[severity] ?? 'bg-gray-500'}`}
+      />
+    </div>
+  );
+}
+
+function TargetMarker({ severity }: { severity: string }) {
+  return (
+    <div className="relative flex items-center justify-center">
+      {/* Pulse ring */}
+      <span className="absolute h-5 w-5 rounded-full animate-ping bg-emerald-400 opacity-30" />
+      {/* Crosshair ring */}
+      <span
+        className={`absolute h-4 w-4 rounded-full border-2 border-emerald-400/70 ${
+          severity === 'critical' ? 'border-red-400/70' : ''
+        }`}
+      />
+      {/* Inner */}
+      <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50" />
     </div>
   );
 }
