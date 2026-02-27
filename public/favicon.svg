@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <style>
+    .shield { fill: #ef4444; }
+    .inner { fill: #060a13; }
+    .eye { fill: #ef4444; }
+    .ring { stroke: #ef4444; fill: none; }
+    @media (prefers-color-scheme: light) {
+      .inner { fill: #f8fafc; }
+    }
+  </style>
+  <path class="shield" d="M16 1.5L3.5 7v9.5c0 7 5.2 13.2 12.5 14.5 7.3-1.3 12.5-7.5 12.5-14.5V7L16 1.5z"/>
+  <path class="inner" d="M16 4L5.5 8.5v8c0 6 4.5 11.3 10.5 12.5 6-1.2 10.5-6.5 10.5-12.5v-8L16 4z"/>
+  <ellipse class="ring" cx="16" cy="16" rx="7.5" ry="5" stroke-width="1.2"/>
+  <circle class="ring" cx="16" cy="16" r="3" stroke-width="1"/>
+  <circle class="eye" cx="16" cy="16" r="1.5"/>
+</svg>

@@ -1,0 +1,16 @@
+{
+  "name": "ARGUS — Autonomous Threat Intelligence",
+  "short_name": "ARGUS",
+  "description": "The all-seeing eye of cyber defense. Autonomous AI scouts continuously monitor, analyze, and visualize the global threat landscape.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060a13",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "/argus-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

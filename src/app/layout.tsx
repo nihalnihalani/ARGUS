@@ -20,6 +20,24 @@ export const metadata: Metadata = {
   title: "ARGUS — Autonomous Threat Intelligence",
   description:
     "The all-seeing eye of cyber defense. Autonomous AI scouts continuously monitor, analyze, and visualize the global threat landscape.",
+  manifest: "/site.webmanifest",
+  themeColor: "#ef4444",
+  openGraph: {
+    title: "ARGUS — Autonomous Threat Intelligence",
+    description:
+      "The all-seeing eye of cyber defense. AI-powered threat intelligence with real-time knowledge graph, global attack map, and autonomous scout fleet.",
+    siteName: "ARGUS",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ARGUS — Autonomous Threat Intelligence",
+    description:
+      "AI-powered cyber threat intelligence platform with real-time monitoring, knowledge graph, and autonomous scout agents.",
+  },
+  other: {
+    "msapplication-TileColor": "#060a13",
+  },
 };
 
 export default function RootLayout({
