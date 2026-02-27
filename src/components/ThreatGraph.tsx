@@ -283,17 +283,22 @@ export default function ThreatGraph({
   }, []);
 
   // Graph controls
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = useCallback((e) => {
+    console.log("zoom in clicked");
+    e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
-    d3.select(svgRef.current).transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.3);
+    zoomBehaviorRef.current.scaleBy(d3.select(svgRef.current), 1.3);
   }, []);
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = useCallback((e) => {
+    console.log("zoom out clicked");
+    e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
-    d3.select(svgRef.current).transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.7);
+    zoomBehaviorRef.current.scaleBy(d3.select(svgRef.current), 0.7);
   }, []);
 
-  const handleFitToScreen = useCallback(() => {
+  const handleFitToScreen = useCallback((e) => {
+    if (e) e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current || simNodes.length === 0) return;
     const padding = 40;
     const minX = d3.min(simNodes, n => n.x) || 0;
@@ -312,13 +317,14 @@ export default function ThreatGraph({
       .scale(scale)
       .translate(-(minX + width / 2), -(minY + height / 2));
 
-    d3.select(svgRef.current).transition().duration(750).call(zoomBehaviorRef.current.transform, transform);
+    zoomBehaviorRef.current.transform(d3.select(svgRef.current), transform);
   }, [simNodes, w, h]);
 
-  const handleCenter = useCallback(() => {
+  const handleCenter = useCallback((e) => {
+    if (e) e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
     const transform = d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-w / 2, -h / 2);
-    d3.select(svgRef.current).transition().duration(750).call(zoomBehaviorRef.current.transform, transform);
+    zoomBehaviorRef.current.transform(d3.select(svgRef.current), transform);
   }, [w, h]);
 
   const toggleNodeType = useCallback((type: NodeType) => {

@@ -66,24 +66,24 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #0A0E17;
-  --foreground: #e2e8f0;
-  --card: rgba(15, 23, 42, 0.6);
-  --card-foreground: #e2e8f0;
-  --popover: rgba(15, 23, 42, 0.95);
-  --popover-foreground: #e2e8f0;
-  --primary: #e2e8f0;
-  --primary-foreground: #0A0E17;
-  --secondary: rgba(30, 41, 59, 0.5);
+  --background: #0b0914;
+  --foreground: #f8fafc;
+  --card: rgba(17, 14, 28, 0.7);
+  --card-foreground: #f8fafc;
+  --popover: rgba(17, 14, 28, 0.95);
+  --popover-foreground: #f8fafc;
+  --primary: #c084fc;
+  --primary-foreground: #0b0914;
+  --secondary: rgba(30, 27, 46, 0.6);
   --secondary-foreground: #e2e8f0;
-  --muted: rgba(30, 41, 59, 0.4);
-  --muted-foreground: #64748b;
-  --accent: rgba(30, 41, 59, 0.5);
-  --accent-foreground: #e2e8f0;
-  --destructive: #ff3b3b;
-  --border: rgba(255, 255, 255, 0.05);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: #3b82f6;
+  --muted: rgba(30, 27, 46, 0.5);
+  --muted-foreground: #94a3b8;
+  --accent: rgba(168, 85, 247, 0.15);
+  --accent-foreground: #e879f9;
+  --destructive: #f43f5e;
+  --border: rgba(139, 92, 246, 0.1);
+  --input: rgba(139, 92, 246, 0.1);
+  --ring: #a855f7;
   --chart-1: #ff3b3b;
   --chart-2: #ff8c42;
   --chart-3: #ffd43b;
@@ -100,24 +100,24 @@
 }
 
 .dark {
-  --background: #0A0E17;
-  --foreground: #e2e8f0;
-  --card: rgba(15, 23, 42, 0.6);
-  --card-foreground: #e2e8f0;
-  --popover: rgba(15, 23, 42, 0.95);
-  --popover-foreground: #e2e8f0;
-  --primary: #e2e8f0;
-  --primary-foreground: #0A0E17;
-  --secondary: rgba(30, 41, 59, 0.5);
+  --background: #0b0914;
+  --foreground: #f8fafc;
+  --card: rgba(17, 14, 28, 0.7);
+  --card-foreground: #f8fafc;
+  --popover: rgba(17, 14, 28, 0.95);
+  --popover-foreground: #f8fafc;
+  --primary: #c084fc;
+  --primary-foreground: #0b0914;
+  --secondary: rgba(30, 27, 46, 0.6);
   --secondary-foreground: #e2e8f0;
-  --muted: rgba(30, 41, 59, 0.4);
-  --muted-foreground: #64748b;
-  --accent: rgba(30, 41, 59, 0.5);
-  --accent-foreground: #e2e8f0;
-  --destructive: #ff3b3b;
-  --border: rgba(255, 255, 255, 0.05);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: #3b82f6;
+  --muted: rgba(30, 27, 46, 0.5);
+  --muted-foreground: #94a3b8;
+  --accent: rgba(168, 85, 247, 0.15);
+  --accent-foreground: #e879f9;
+  --destructive: #f43f5e;
+  --border: rgba(139, 92, 246, 0.1);
+  --input: rgba(139, 92, 246, 0.1);
+  --ring: #a855f7;
 }
 
 /* ========================================================================
@@ -129,8 +129,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    background: #0A0E17;
-    color: #e2e8f0;
+    background: #0b0914;
+    color: #f8fafc;
     font-family: var(--font-sans), sans-serif;
   }
 }
@@ -141,7 +141,7 @@
 
 .tg-atmosphere {
   position: relative;
-  background: #0A0E17;
+  background: #0b0914;
 }
 
 .tg-atmosphere::before {
@@ -149,9 +149,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(239, 68, 68, 0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(168, 85, 247, 0.02) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(6, 182, 212, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(236, 72, 153, 0.06) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -336,10 +336,10 @@
 /* Pulse glow for critical alerts */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 4px rgba(255, 59, 59, 0.3);
+    box-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 59, 59, 0.6), 0 0 40px rgba(255, 59, 59, 0.2);
+    box-shadow: 0 0 24px rgba(255, 0, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.3);
   }
 }
 
@@ -411,9 +411,9 @@
 
 /* Attack path glow */
 .attack-path-edge {
-  stroke: #ff3b3b;
+  stroke: #ff00ff;
   stroke-width: 3;
-  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.6));
+  filter: drop-shadow(0 0 12px rgba(255, 0, 255, 0.8));
   stroke-dasharray: 8, 16;
   animation: flow 1s linear infinite;
 }
@@ -477,9 +477,9 @@
 
 .bento-item:hover {
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(168, 85, 247, 0.2),
     0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 60px rgba(239, 68, 68, 0.04);
+    0 0 60px rgba(168, 85, 247, 0.15);
 }
 
 /* Animated SVG border — hidden until hover */
@@ -532,10 +532,10 @@
   inset: -50%;
   background: conic-gradient(
     from 0deg at 50% 50%,
-    rgba(239, 68, 68, 0.03) 0deg,
-    rgba(59, 130, 246, 0.03) 120deg,
-    rgba(168, 85, 247, 0.03) 240deg,
-    rgba(239, 68, 68, 0.03) 360deg
+    rgba(6, 182, 212, 0.08) 0deg,
+    rgba(168, 85, 247, 0.08) 120deg,
+    rgba(236, 72, 153, 0.08) 240deg,
+    rgba(6, 182, 212, 0.08) 360deg
   );
   animation: move-aurora 12s linear infinite;
   pointer-events: none;
@@ -588,7 +588,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(0, 242, 254, 0.25);
 }
 
 .radar-grid::before,
@@ -596,7 +596,7 @@
   content: "";
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.15);
 }
 
 .radar-grid::before {
@@ -619,7 +619,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(0, 242, 254, 0.2);
 }
 
 .radar-crosshair::after {
@@ -629,7 +629,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(0, 242, 254, 0.2);
 }
 
 .radar-sweep-arm {
@@ -640,7 +640,7 @@
   background: conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
-    rgba(239, 68, 68, 0.25) 30deg,
+    rgba(0, 242, 254, 0.4) 30deg,
     transparent 60deg
   );
   mask-image: radial-gradient(circle, transparent 10%, black 10%);
@@ -654,8 +654,8 @@
   height: 6px;
   margin: -3px 0 0 -3px;
   border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  background: #00f2fe;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.8);
   animation: radar-ping 2s ease-in-out infinite;
 }
 
@@ -663,7 +663,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(0, 242, 254, 0.5);
   animation: radar-ring-expand 3s ease-out infinite;
 }
 

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useOnClickOutside } from "usehooks-ts";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
 
@@ -57,12 +56,17 @@ export function ExpandableTabs({
   onChange,
 }: ExpandableTabsProps) {
   const [selected, setSelected] = React.useState<number | null>(defaultSelected);
+
+  // Sync internal state if prop changes
+  React.useEffect(() => {
+    if (defaultSelected !== undefined) {
+      setSelected(defaultSelected);
+    }
+  }, [defaultSelected]);
+
   const outsideClickRef = React.useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {
-    setSelected(null);
-    onChange?.(null);
-  });
+  // Removed useOnClickOutside so the tabs stay selected even when clicking elsewhere
 
   const handleSelect = (index: number) => {
     setSelected(index);
@@ -70,14 +74,14 @@ export function ExpandableTabs({
   };
 
   const Separator = () => (
-    <div className="mx-1 h-[24px] w-[1.2px] bg-border" aria-hidden="true" />
+    <div className="mx-1 h-[24px] w-[1.2px] bg-indigo-500/10" aria-hidden="true" />
   );
 
   return (
     <div
       ref={outsideClickRef}
       className={cn(
-        "flex flex-wrap items-center gap-2 rounded-2xl border bg-background p-1 shadow-sm",
+        "flex flex-wrap items-center gap-1 rounded-2xl border border-indigo-500/10 bg-[#0b0914]/80 p-1 shadow-sm backdrop-blur-md",
         className
       )}
     >
@@ -87,38 +91,30 @@ export function ExpandableTabs({
         }
 
         const Icon = tab.icon;
+        const isActive = selected === index;
+
         return (
-          <motion.button
+          <button
             key={tab.title}
-            variants={buttonVariants}
-            initial={false}
-            animate="animate"
-            custom={selected === index}
             onClick={() => handleSelect(index)}
-            transition={transition}
             className={cn(
-              "relative flex items-center rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-300",
-              selected === index
-                ? cn("bg-muted", activeColor)
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              "relative flex items-center rounded-xl py-2 font-medium transition-all duration-300 whitespace-nowrap",
+              isActive
+                ? cn("bg-indigo-500/10 px-4 gap-2 text-sm shadow-[0_0_12px_currentColor]", activeColor)
+                : "text-slate-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-300 px-3.5 gap-0"
             )}
+            style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <Icon size={20} />
-            <AnimatePresence initial={false}>
-              {selected === index && (
-                <motion.span
-                  variants={spanVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={transition}
-                  className="overflow-hidden"
-                >
-                  {tab.title}
-                </motion.span>
+            <Icon size={isActive ? 18 : 20} className="shrink-0" />
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-in-out",
+                isActive ? "max-w-[200px] opacity-100" : "max-w-0 opacity-0"
               )}
-            </AnimatePresence>
-          </motion.button>
+            >
+              <span className="whitespace-nowrap block">{tab.title}</span>
+            </div>
+          </button>
         );
       })}
     </div>

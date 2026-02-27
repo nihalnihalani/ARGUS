@@ -70,7 +70,7 @@ export default function Header({
 
   return (
     <header
-      className="relative flex items-center justify-between px-6 py-3 z-[100] border-b border-white/[0.04] bg-[#0A0E17] backdrop-blur-xl shadow-md h-16 pointer-events-auto"
+      className="relative flex items-center justify-between px-6 py-3 z-[100] border-b border-indigo-500/10 bg-[#0b0914] backdrop-blur-xl shadow-md h-16 pointer-events-auto"
     >
       {/* Left: Logo + Context / Threat Level */}
       <div className="flex items-center gap-4 shrink-0 mr-auto">
@@ -126,7 +126,7 @@ export default function Header({
             { title: "Settings", icon: Settings },
             { title: "Notifications", icon: Bell },
           ]}
-          activeColor="text-red-400"
+          activeColor="text-fuchsia-400"
           className="bg-transparent border-none p-0 shadow-none"
           defaultSelected={visualizerIndex}
           onChange={handleTabChange}

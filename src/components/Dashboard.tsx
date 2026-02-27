@@ -750,22 +750,22 @@ export default function Dashboard() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute top-0 right-0 w-[340px] h-full z-40 bg-[rgba(10,14,23,0.95)] backdrop-blur-2xl border-l border-white/[0.06] shadow-2xl flex flex-col"
+            className="absolute top-0 right-0 w-[340px] h-full z-40 bg-[#0b0914]/95 backdrop-blur-2xl border-l border-indigo-500/10 shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-indigo-500/10 bg-indigo-500/[0.02]">
               <div className="flex items-center gap-2">
-                <span className={`inline-block w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] ${
+                <span className={`inline-block w-2.5 h-2.5 rounded-full shadow-[0_0_12px_currentColor] ${
                   selectedNode.type === 'ThreatActor' ? 'text-red-500 bg-red-500' :
                   selectedNode.type === 'Vulnerability' ? 'text-orange-500 bg-orange-500' :
                   selectedNode.type === 'Organization' ? 'text-green-500 bg-green-500' :
-                  'text-blue-500 bg-blue-500'
+                  'text-fuchsia-500 bg-fuchsia-500'
                 }`} />
                 <h3 className="text-xs font-mono uppercase tracking-widest text-slate-400">{selectedNode.type}</h3>
               </div>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/[0.05] transition-colors"
+                className="p-1 rounded-md text-slate-500 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -827,7 +827,7 @@ export default function Dashboard() {
 
               {/* Actions */}
               <div className="mt-auto pt-4">
-                <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white text-[#0A0E17] font-semibold text-sm hover:bg-slate-200 transition-colors">
+                <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all">
                   <Search className="h-4 w-4" />
                   Deep Investigation
                 </button>
@@ -840,7 +840,7 @@ export default function Dashboard() {
   };
 
   const renderGraphPanel = () => (
-    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden group">
+    <div className="relative h-full w-full bg-[#0b0914] overflow-hidden group">
       {renderNodeDetails()}
       <ThreatGraph
         nodes={nodes}
@@ -852,21 +852,21 @@ export default function Dashboard() {
   );
 
   const renderMapPanel = () => (
-    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden group">
+    <div className="relative h-full w-full bg-[#0b0914] overflow-hidden group">
       <AttackMap arcs={arcs} />
     </div>
   );
 
   const renderFeedPanel = () => (
-    <div className="flex-1 flex flex-col h-full bg-[#0A0E17] overflow-y-auto custom-scrollbar">
+    <div className="flex-1 flex flex-col h-full bg-[#0b0914] overflow-y-auto custom-scrollbar">
       <ThreatBrief brief={threatBrief} isLoading={isBriefLoading} />
-      <div className="border-t border-white/[0.04]" />
+      <div className="border-t border-indigo-500/10" />
       <LiveFeed items={feedItems} />
     </div>
   );
 
   const renderInvestigatePanel = () => (
-    <div className="flex-1 flex flex-col h-full bg-[#0A0E17] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[#0b0914] overflow-hidden">
       <SearchBar
         onResults={handleSearchResults}
         onViewTrajectory={handleViewTrajectory}
@@ -878,7 +878,7 @@ export default function Dashboard() {
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0A0E17] tg-atmosphere tg-scanline relative">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#0b0914] tg-atmosphere tg-scanline relative">
       {/* Header */}
       <Header
         stats={stats}
@@ -895,10 +895,10 @@ export default function Dashboard() {
         <div className="flex-1 overflow-hidden relative flex z-10">
           
       {/* Left Column: Visualizer */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#0A0E17] relative pointer-events-auto z-10">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0b0914] relative pointer-events-auto z-10">
         {/* Bottom Graph Stats */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-              <div className="bg-[rgba(10,14,23,0.7)] backdrop-blur-xl border border-white/[0.06] rounded-xl p-1.5 shadow-2xl">
+              <div className="bg-[#0b0914]/70 backdrop-blur-xl border border-indigo-500/20 rounded-xl p-1.5 shadow-[0_8px_32px_-8px_rgba(168,85,247,0.3)]">
                 <GraphStats stats={stats} />
               </div>
             </div>
@@ -920,22 +920,22 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column: Context & Tools */}
-          <div className="w-[440px] shrink-0 border-l border-white/[0.04] bg-[#0A0E17]/90 backdrop-blur-xl flex flex-col shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)] z-20">
+          <div className="w-[440px] shrink-0 border-l border-indigo-500/10 bg-[#0b0914]/90 backdrop-blur-xl flex flex-col shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)] z-20">
             {/* Tabs */}
-            <div className="flex items-center justify-center p-3 border-b border-white/[0.04] bg-white/[0.01]">
+            <div className="flex items-center justify-center p-3 border-b border-indigo-500/10 bg-indigo-500/[0.01]">
               <ExpandableTabs
                 tabs={[
                   { title: "Intelligence", icon: FileText },
                   { title: "Investigate", icon: Search },
                 ]}
-                activeColor="text-red-400"
+                activeColor="text-fuchsia-400"
                 defaultSelected={activeTab === 'intelligence' ? 0 : 1}
                 onChange={(index) => {
                   if (index !== null) {
                     setActiveTab(index === 0 ? 'intelligence' : 'investigate');
                   }
                 }}
-                className="w-full justify-center bg-white/[0.02] border-white/[0.05] p-1"
+                className="w-full justify-center bg-indigo-500/[0.02] border-indigo-500/10 p-1"
               />
             </div>
 
