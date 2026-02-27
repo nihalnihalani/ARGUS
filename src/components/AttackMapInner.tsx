@@ -52,8 +52,21 @@ function greatCirclePoints(
   lon2: number, lat2: number,
   steps = 64
 ): [number, number][] {
+  // To avoid drawing straight lines backwards across the entire map,
+  // we check if the shortest distance crosses the antimeridian (180 deg).
+  // If it does, we temporarily adjust the second longitude so the math
+  // stays continuous outside the standard [-180, 180] range. Mapbox/MapLibre
+  // handles longitudes > 180 or < -180 smoothly when renderWorldCopies is true.
+  
+  let targetLon = lon2;
+  if (lon1 - lon2 > 180) {
+    targetLon += 360;
+  } else if (lon2 - lon1 > 180) {
+    targetLon -= 360;
+  }
+
   const φ1 = toRad(lat1), λ1 = toRad(lon1);
-  const φ2 = toRad(lat2), λ2 = toRad(lon2);
+  const φ2 = toRad(lat2), λ2 = toRad(targetLon);
   const d = 2 * Math.asin(
     Math.sqrt(
       Math.sin((φ2 - φ1) / 2) ** 2 +
@@ -70,8 +83,26 @@ function greatCirclePoints(
     const x = a * Math.cos(φ1) * Math.cos(λ1) + b * Math.cos(φ2) * Math.cos(λ2);
     const y = a * Math.cos(φ1) * Math.sin(λ1) + b * Math.cos(φ2) * Math.sin(λ2);
     const z = a * Math.sin(φ1) + b * Math.sin(φ2);
-    coords.push([toDeg(Math.atan2(y, x)), toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)))]);
+    
+    // Convert back to degrees.
+    let ptLon = toDeg(Math.atan2(y, x));
+    let ptLat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
+    
+    // The great circle formula will snap the longitude back into the [-180, 180] range
+    // due to Math.atan2. If our path crossed the antimeridian, this creates a jump.
+    // We undo the wrapping by ensuring the sequence of longitudes is strictly continuous.
+    if (coords.length > 0) {
+      const prevLon = coords[coords.length - 1][0];
+      if (ptLon - prevLon > 180) {
+        ptLon -= 360;
+      } else if (prevLon - ptLon > 180) {
+        ptLon += 360;
+      }
+    }
+    
+    coords.push([ptLon, ptLat]);
   }
+
   return coords;
 }
 
@@ -128,37 +159,18 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
     arcs.forEach((arc) => {
       const color = SEVERITY_COLORS[arc.severity] ?? '#6b7280';
       
-      // Calculate the longitudinal distance
-      let dLon = arc.targetLon - arc.sourceLon;
-      
-      // If the distance is greater than 180 degrees, the shortest path crosses the antimeridian.
-      // In a continuous map, we want to draw the line across the antimeridian instead of
-      // wrapping all the way around the map.
-      if (Math.abs(dLon) > 180) {
-        // Adjust the target longitude to make the line continuous
-        const adjustedTargetLon = dLon > 0 
-          ? arc.targetLon - 360 
-          : arc.targetLon + 360;
-          
-        routes.push({
-          id: arc.id,
-          color,
-          coords: greatCirclePoints(
-            arc.sourceLon, arc.sourceLat,
-            adjustedTargetLon, arc.targetLat
-          ),
-        });
-      } else {
-        // Normal case, no antimeridian crossing
-        routes.push({
-          id: arc.id,
-          color,
-          coords: greatCirclePoints(
-            arc.sourceLon, arc.sourceLat,
-            arc.targetLon, arc.targetLat
-          ),
-        });
-      }
+      // We no longer need the longitudinal distance correction because the straight lines 
+      // are an artifact of the equirectangular projection mapping. A "great circle" path 
+      // accurately represents the shortest distance on a sphere, and we rely on `greatCirclePoints`
+      // to draw the correct arc.
+      routes.push({
+        id: arc.id,
+        color,
+        coords: greatCirclePoints(
+          arc.sourceLon, arc.sourceLat,
+          arc.targetLon, arc.targetLat
+        ),
+      });
     });
     
     return routes;
