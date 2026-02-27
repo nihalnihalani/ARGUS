@@ -64,25 +64,32 @@ function FeatureCard({ icon, title, description, delay }: FeatureProps) {
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay, ease: [0, 0, 0.2, 1] }}
-      className="group relative rounded-2xl p-[1px] overflow-hidden"
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative rounded-3xl p-[1px] overflow-hidden"
     >
-      {/* Gradient border */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      {/* Outer subtle glow/gradient border on hover */}
+      <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/[0.12] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out" />
+      
+      {/* Inner hover glow */}
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/[0.04] blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out pointer-events-none" />
 
       <div
-        className="relative rounded-2xl px-6 py-7 h-full"
+        className="relative flex flex-col rounded-[23px] px-7 py-8 h-full transition-all duration-500 group-hover:bg-white/[0.02]"
         style={{
-          background: "rgba(10, 18, 32, 0.6)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255, 255, 255, 0.04)",
+          background: "linear-gradient(180deg, rgba(14, 19, 30, 0.7) 0%, rgba(8, 11, 18, 0.9) 100%)",
+          backdropFilter: "blur(20px)",
+          boxShadow: "inset 0 1px 0 0 rgba(255, 255, 255, 0.04)",
         }}
       >
-        <div className="mb-4 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+        <div className="mb-6 flex items-center justify-center w-12 h-12 rounded-[14px] bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5)] group-hover:scale-[1.05] transition-transform duration-500 ease-out">
           {icon}
         </div>
-        <h3 className="text-[15px] font-semibold text-white mb-2">{title}</h3>
-        <p className="text-[13px] text-[#64748b] leading-relaxed">{description}</p>
+        <h3 className="text-[17px] font-semibold text-white tracking-tight mb-2.5">
+          {title}
+        </h3>
+        <p className="text-[14px] text-[#8ba3c2] leading-relaxed font-normal">
+          {description}
+        </p>
       </div>
     </motion.div>
   );
@@ -288,25 +295,25 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
             <span
-              className="inline-block text-[10px] font-semibold tracking-[0.15em] uppercase text-[#64748b] mb-4"
+              className="inline-block px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.2em] uppercase text-[#94a3b8] mb-6 border border-white/[0.05] bg-white/[0.01]"
               style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
             >
               Capabilities
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-[-0.02em] mb-5">
               Autonomous by design
             </h2>
-            <p className="text-[15px] text-[#64748b] max-w-xl mx-auto">
+            <p className="text-[17px] text-[#8ba3c2] max-w-2xl mx-auto leading-relaxed">
               Six integrated capabilities that work together to provide
               continuous, automated threat intelligence coverage.
             </p>
           </motion.div>
 
           {/* Feature grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <FeatureCard
               icon={<Radio className="h-5 w-5 text-[#2ed573]" />}
               title="Autonomous Scouts"
