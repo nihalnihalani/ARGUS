@@ -9,7 +9,10 @@ import {
   Route,
   Bug,
   X,
+  Fingerprint,
+  Target,
 } from "lucide-react";
+import { IconSpy, IconVirus } from "@tabler/icons-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { GraphNode, GraphEdge } from "@/lib/types";
 

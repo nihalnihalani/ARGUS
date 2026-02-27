@@ -6,8 +6,8 @@ import {
   GitBranch,
   Skull,
   Bug,
-  AlertTriangle,
-  Radio,
+  Siren,
+  Radar,
 } from "lucide-react";
 import type { GraphStats as GraphStatsType } from "@/lib/types";
 
@@ -77,14 +77,14 @@ export default function GraphStats({ stats }: GraphStatsProps) {
       color: "#ff6348",
     },
     {
-      icon: AlertTriangle,
+      icon: Siren,
       label: "Critical",
       value: stats.criticalCount,
       color: "#ff3b3b",
       glow: stats.criticalCount > 0,
     },
     {
-      icon: Radio,
+      icon: Radar,
       label: "Scouts",
       value: stats.activeScouts,
       color: "#2ed573",

@@ -8,9 +8,11 @@ import {
   Github,
   Newspaper,
   Radio,
+  Radar,
   ChevronDown,
   ExternalLink,
 } from "lucide-react";
+import { IconShieldLock } from "@tabler/icons-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FeedItem } from "@/lib/types";
 
@@ -24,11 +26,11 @@ const severityBadgeStyles: Record<string, string> = {
 
 const sourceIcons: Record<string, React.ComponentType<{ className?: string }>> =
   {
-    nvd: Shield,
+    nvd: IconShieldLock,
     twitter: Twitter,
     github: Github,
     news: Newspaper,
-    system: Radio,
+    system: Radar,
   };
 
 function timeAgo(timestamp: string): string {

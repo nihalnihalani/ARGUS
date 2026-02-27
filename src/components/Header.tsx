@@ -1,6 +1,7 @@
 "use client";
 
-import { Shield, RefreshCw, Zap } from "lucide-react";
+import { RefreshCw, Zap } from "lucide-react";
+import { ArgusLogo } from "@/components/ui/argus-logo";
 import GraphStats from "@/components/GraphStats";
 import type { GraphStats as GraphStatsType } from "@/lib/types";
 
@@ -33,8 +34,23 @@ export default function Header({
     <header
       className="relative flex items-center justify-between px-6 py-3 z-50 border-b border-white/[0.04] bg-[#060a13]/80 backdrop-blur-xl shadow-md"
     >
-      {/* Left: Context / Threat Level */}
+      {/* Left: Logo + Context / Threat Level */}
       <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="relative">
+            <ArgusLogo size={22} animate />
+            <div className="absolute inset-0 blur-md bg-red-500/15 rounded-full" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[15px] font-bold tracking-tight text-gray-50">
+              ARGUS
+            </span>
+            <span className="text-[9px] font-mono text-[#475569] tracking-widest uppercase">
+              v1.0
+            </span>
+          </div>
+        </div>
+
         <span
           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-mono uppercase tracking-widest border shadow-sm ${
             threatLevelColors[threatLevel] || threatLevelColors.moderate

@@ -7,7 +7,9 @@ import {
   ArrowRight,
   CheckCircle,
   ShieldAlert,
+  Scan,
 } from "lucide-react";
+import { IconShieldBolt } from "@tabler/icons-react";
 import ReactMarkdown from "react-markdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ThreatBrief as ThreatBriefType } from "@/lib/types";

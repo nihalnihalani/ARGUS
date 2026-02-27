@@ -12,7 +12,11 @@ import {
   Radio,
   Globe,
   Zap,
+  Radar,
+  Network,
+  Scan,
 } from "lucide-react";
+import { IconTopologyStar3, IconShieldBolt } from "@tabler/icons-react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import ThreatGraph from "@/components/ThreatGraph";
@@ -23,6 +27,7 @@ import SearchBar from "@/components/SearchBar";
 import TrajectoryViewer from "@/components/TrajectoryViewer";
 import { BentoItem } from "@/components/ui/holographic-interface";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
+import { RadarLoader } from "@/components/ui/radar-loader";
 import type {
   GraphNode,
   GraphEdge,
@@ -718,14 +723,11 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center" style={{ background: '#060a13' }}>
-        <div className="text-center">
-          <div className="relative w-12 h-12 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-[rgba(255,255,255,0.04)] border-t-[#ff3b3b] animate-spin" />
-            <div className="absolute inset-1 rounded-full border border-[rgba(255,255,255,0.02)] border-b-[#54a0ff] animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
-          </div>
-          <div className="text-[#64748b] text-xs font-mono tracking-wider">Initializing ARGUS...</div>
-          <div className="text-[#334155] text-[10px] mt-2 font-mono">Loading knowledge graph and deploying scouts</div>
-        </div>
+        <RadarLoader
+          size={140}
+          label="Initializing ARGUS..."
+          sublabel="Loading knowledge graph and deploying scouts"
+        />
       </div>
     );
   }
@@ -788,9 +790,9 @@ export default function Dashboard() {
                 { type: "separator" as const },
                 { title: `${stats.threatActorCount} Actors`, icon: Skull },
                 { title: `${stats.vulnerabilityCount} Vulns`, icon: Bug },
-                { title: `${stats.criticalCount} Critical`, icon: AlertTriangle },
+                { title: `${stats.criticalCount} Critical`, icon: Scan },
                 { type: "separator" as const },
-                { title: `${stats.activeScouts} Scouts`, icon: Radio },
+                { title: `${stats.activeScouts} Scouts`, icon: Radar },
               ]}
               size="sm"
               activeColor="text-red-400"
@@ -833,7 +835,7 @@ export default function Dashboard() {
               <BentoItem
                 title="Threat Graph"
                 description="Real-time entity relationship mapping across the global threat landscape"
-                icon={<CircuitBoard className="h-4 w-4" />}
+                icon={<IconTopologyStar3 className="h-4 w-4" />}
                 accentColor="rgba(239, 68, 68, 0.6)"
               >
                 <div className="flex items-baseline gap-1.5">
@@ -848,7 +850,7 @@ export default function Dashboard() {
               <BentoItem
                 title="Global Monitor"
                 description="Cross-border attack vector tracking with nation-state origin attribution"
-                icon={<Globe className="h-4 w-4" />}
+                icon={<Network className="h-4 w-4" />}
                 accentColor="rgba(59, 130, 246, 0.6)"
               >
                 <div className="flex items-baseline gap-1.5">
@@ -860,7 +862,7 @@ export default function Dashboard() {
               <BentoItem
                 title="AI Briefing"
                 description="Autonomous threat assessment with continuous CISA gap coverage"
-                icon={<Zap className="h-4 w-4" />}
+                icon={<IconShieldBolt className="h-4 w-4" />}
                 accentColor="rgba(168, 85, 247, 0.6)"
               >
                 <div className="flex items-center gap-2">
@@ -878,7 +880,7 @@ export default function Dashboard() {
               <BentoItem
                 title="Scout Fleet"
                 description="Autonomous agents monitoring NVD, GitHub, Twitter, and dark web feeds"
-                icon={<Radio className="h-4 w-4" />}
+                icon={<Radar className="h-4 w-4" />}
                 accentColor="rgba(46, 213, 115, 0.6)"
               >
                 <div className="flex items-baseline gap-1.5">
