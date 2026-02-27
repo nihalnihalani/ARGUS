@@ -21,9 +21,7 @@ export async function POST(req: NextRequest) {
       ? `${query}\n\nAdditional context: ${context}`
       : query;
 
-    const task = await createResearchTask(fullQuery, {
-      json_schema: threatIntelSchema,
-    });
+    const task = await createResearchTask(fullQuery, threatIntelSchema);
 
     // Poll for completion
     let result = null;

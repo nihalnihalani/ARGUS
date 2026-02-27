@@ -283,21 +283,21 @@ export default function ThreatGraph({
   }, []);
 
   // Graph controls
-  const handleZoomIn = useCallback((e) => {
+  const handleZoomIn = useCallback((e: React.MouseEvent) => {
     console.log("zoom in clicked");
     e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
     zoomBehaviorRef.current.scaleBy(d3.select(svgRef.current), 1.3);
   }, []);
 
-  const handleZoomOut = useCallback((e) => {
+  const handleZoomOut = useCallback((e: React.MouseEvent) => {
     console.log("zoom out clicked");
     e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
     zoomBehaviorRef.current.scaleBy(d3.select(svgRef.current), 0.7);
   }, []);
 
-  const handleFitToScreen = useCallback((e) => {
+  const handleFitToScreen = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current || simNodes.length === 0) return;
     const padding = 40;
@@ -320,7 +320,7 @@ export default function ThreatGraph({
     zoomBehaviorRef.current.transform(d3.select(svgRef.current), transform);
   }, [simNodes, w, h]);
 
-  const handleCenter = useCallback((e) => {
+  const handleCenter = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!svgRef.current || !zoomBehaviorRef.current) return;
     const transform = d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-w / 2, -h / 2);

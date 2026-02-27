@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const scoutIds = req.nextUrl.searchParams.get('scoutIds');
     const pageSize = parseInt(req.nextUrl.searchParams.get('pageSize') || '5', 10);
+    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
 
     // Support both single id and comma-separated ids
     const singleId = req.nextUrl.searchParams.get('id');
@@ -24,13 +25,20 @@ export async function GET(req: NextRequest) {
 
     const allUpdates: {
       scoutId: string;
-      updates: { id: string; content: string; created_at: string }[];
+      updates: { id: string; task_id: string; content: string; created_at: string; update_type?: string }[];
+      next_cursor?: string;
+      prev_cursor?: string;
     }[] = [];
 
     for (const id of ids) {
       try {
-        const data = await pollScout(id, pageSize);
-        allUpdates.push({ scoutId: id, updates: data.updates });
+        const data = await pollScout(id, pageSize, cursor);
+        allUpdates.push({
+          scoutId: id,
+          updates: data.updates,
+          next_cursor: data.next_cursor,
+          prev_cursor: data.prev_cursor,
+        });
       } catch (err) {
         console.warn(`[scouts/poll] Failed to poll scout ${id}:`, err);
         allUpdates.push({ scoutId: id, updates: [] });

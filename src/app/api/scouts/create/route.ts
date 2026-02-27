@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
           createScout(
             q.query,
             q.displayName,
-            { json_schema: threatIntelSchema },
+            threatIntelSchema,
             webhookUrl
           )
       )
