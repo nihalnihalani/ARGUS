@@ -89,7 +89,7 @@ function Map({ children, styles, ...props }: MapProps) {
     const mapInstance = new MapLibreGL.Map({
       container: containerRef.current,
       style: mapStyle,
-      renderWorldCopies: false,
+      renderWorldCopies: true,
       attributionControl: {
         compact: true,
       },
