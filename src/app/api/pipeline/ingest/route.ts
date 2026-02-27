@@ -38,11 +38,26 @@ export async function POST(req: NextRequest) {
     const feedItems: FeedItem[] = [];
 
     // ---------------------------------------------------------------
-    // Step 1: Extract entities from the scout update using OpenAI
+    // Step 1: Extract entities from the scout update (try Yutori JSON first, fallback to OpenAI)
     // ---------------------------------------------------------------
     let extracted;
     try {
-      extracted = await extractEntities(scoutUpdate);
+      try {
+        const parsed = typeof scoutUpdate === 'string' ? JSON.parse(scoutUpdate) : scoutUpdate;
+        if (parsed && parsed.entities && Array.isArray(parsed.entities)) {
+          console.log('[pipeline] Using native Yutori structured output');
+          extracted = {
+            entities: parsed.entities || [],
+            relationships: parsed.relationships || [],
+            iocs: parsed.iocs || []
+          };
+        } else {
+          throw new Error('Not structured threat intelligence JSON');
+        }
+      } catch (parseErr) {
+        console.log('[pipeline] Falling back to OpenAI entity extraction');
+        extracted = await extractEntities(typeof scoutUpdate === 'string' ? scoutUpdate : JSON.stringify(scoutUpdate));
+      }
     } catch (err) {
       console.warn('[pipeline] Entity extraction failed, using raw content:', err);
       // Return minimal result if extraction fails
