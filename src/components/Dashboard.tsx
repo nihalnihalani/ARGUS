@@ -887,33 +887,17 @@ export default function Dashboard() {
         isRefreshing={isRefreshing}
         isDemoMode={isDemoMode}
         onToggleDemo={toggleDemoMode}
+        activeVisualizer={activeVisualizer}
+        onVisualizerChange={setActiveVisualizer}
       />
 
         {/* Main Content Area: 2-Column Layout */}
-        <div className="flex-1 overflow-hidden relative z-10 flex">
+        <div className="flex-1 overflow-hidden relative flex z-10">
           
-          {/* Left Column: Visualizer */}
-          <div className="flex-1 flex flex-col min-w-0 bg-[#0A0E17] relative">
-            {/* Segmented Control for Visualizer */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-              <ExpandableTabs
-                tabs={[
-                  { title: "Threat Graph", icon: Network },
-                  { title: "Global Map", icon: Globe },
-                ]}
-                activeColor="text-red-400"
-                defaultSelected={activeVisualizer === 'graph' ? 0 : 1}
-                onChange={(index) => {
-                  if (index !== null) {
-                    setActiveVisualizer(index === 0 ? 'graph' : 'map');
-                  }
-                }}
-                className="bg-[rgba(10,14,23,0.8)] backdrop-blur-xl border-white/[0.08] shadow-2xl"
-              />
-            </div>
-
-            {/* Bottom Graph Stats */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+      {/* Left Column: Visualizer */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0A0E17] relative pointer-events-auto z-10">
+        {/* Bottom Graph Stats */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
               <div className="bg-[rgba(10,14,23,0.7)] backdrop-blur-xl border border-white/[0.06] rounded-xl p-1.5 shadow-2xl">
                 <GraphStats stats={stats} />
               </div>
@@ -936,7 +920,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column: Context & Tools */}
-          <div className="w-[440px] shrink-0 border-l border-white/[0.04] bg-[#0A0E17]/90 backdrop-blur-xl flex flex-col z-20 shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)]">
+          <div className="w-[440px] shrink-0 border-l border-white/[0.04] bg-[#0A0E17]/90 backdrop-blur-xl flex flex-col shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)] z-20">
             {/* Tabs */}
             <div className="flex items-center justify-center p-3 border-b border-white/[0.04] bg-white/[0.01]">
               <ExpandableTabs
@@ -951,7 +935,7 @@ export default function Dashboard() {
                     setActiveTab(index === 0 ? 'intelligence' : 'investigate');
                   }
                 }}
-                className="w-full justify-center bg-white/[0.02] border-white/[0.05]"
+                className="w-full justify-center bg-white/[0.02] border-white/[0.05] p-1"
               />
             </div>
 

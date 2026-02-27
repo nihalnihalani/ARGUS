@@ -29,6 +29,8 @@ interface HeaderProps {
   isRefreshing?: boolean;
   isDemoMode?: boolean;
   onToggleDemo?: () => void;
+  activeVisualizer: 'graph' | 'map';
+  onVisualizerChange: (visualizer: 'graph' | 'map') => void;
 }
 
 export default function Header({
@@ -38,13 +40,40 @@ export default function Header({
   isRefreshing,
   isDemoMode,
   onToggleDemo,
+  activeVisualizer,
+  onVisualizerChange,
 }: HeaderProps) {
+  // Determine the selected index based on activeVisualizer.
+  // The tabs array structure: [Dashboard, Alerts, Sep, Graph, Map, Sep, Demo, Refresh, Settings, Bell]
+  // Graph is index 3, Map is index 4.
+  const visualizerIndex = activeVisualizer === 'graph' ? 3 : 4;
+
+  const handleTabChange = (index: number | null) => {
+    if (index === null) return;
+    
+    switch (index) {
+      case 3: // Threat Graph
+        onVisualizerChange('graph');
+        break;
+      case 4: // Global Map
+        onVisualizerChange('map');
+        break;
+      case 6: // Demo Mode
+        if (onToggleDemo) onToggleDemo();
+        break;
+      case 7: // Refresh
+        if (onRefresh && !isRefreshing) onRefresh();
+        break;
+      // You can add cases for Settings(8), Bell(9), Dashboard(0), Alerts(1) here later
+    }
+  };
+
   return (
     <header
-      className="relative flex items-center justify-between px-6 py-3 z-50 border-b border-white/[0.04] bg-[#0A0E17]/80 backdrop-blur-xl shadow-md"
+      className="relative flex items-center justify-between px-6 py-3 z-[100] border-b border-white/[0.04] bg-[#0A0E17] backdrop-blur-xl shadow-md h-16 pointer-events-auto"
     >
       {/* Left: Logo + Context / Threat Level */}
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-4 shrink-0 mr-auto">
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <ArgusLogo size={22} animate />
@@ -69,28 +98,21 @@ export default function Header({
           {threatLevel}
         </span>
 
-        <div
-          className="flex items-center gap-2 px-3 py-1 rounded-md border"
-          style={{
-            background: "rgba(239, 68, 68, 0.05)",
-            borderColor: "rgba(239, 68, 68, 0.1)",
-          }}
-        >
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-md border bg-red-500/5 border-red-500/10">
           <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
           </span>
           <span
-            className="text-[10px] font-semibold text-red-400/80 tracking-widest uppercase"
-            style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}
+            className="text-[10px] font-semibold text-red-400/80 tracking-widest uppercase font-mono"
           >
             CISA DOWN — Auto Watch
           </span>
         </div>
       </div>
 
-      {/* Center: Navigation */}
-      <div className="flex-1 flex justify-center">
+      {/* Right: Unified Navigation & Controls */}
+      <div className="flex items-center shrink-0 ml-auto pointer-events-auto z-50">
         <ExpandableTabs
           tabs={[
             { title: "Dashboard", icon: Home },
@@ -98,49 +120,17 @@ export default function Header({
             { type: "separator" },
             { title: "Network", icon: Network },
             { title: "Global Map", icon: Globe2 },
+            { type: "separator" },
+            { title: isDemoMode ? "Live Data" : "Demo Mode", icon: Zap },
+            { title: "Refresh", icon: RefreshCw },
+            { title: "Settings", icon: Settings },
+            { title: "Notifications", icon: Bell },
           ]}
           activeColor="text-red-400"
-          className="bg-white/[0.02] border-white/[0.04]"
-          defaultSelected={0}
+          className="bg-transparent border-none p-0 shadow-none"
+          defaultSelected={visualizerIndex}
+          onChange={handleTabChange}
         />
-      </div>
-
-      {/* Right: Controls */}
-      <div className="flex items-center gap-2 shrink-0">
-        {onToggleDemo && (
-          <button
-            onClick={onToggleDemo}
-            className={`px-2.5 py-1 rounded-md text-[9px] font-mono uppercase tracking-[0.1em] border transition-all duration-200 ${
-              isDemoMode
-                ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.08)]"
-                : "text-[#475569] border-[rgba(255,255,255,0.04)] hover:text-[#94a3b8] hover:border-[rgba(255,255,255,0.08)]"
-            }`}
-            style={{
-              background: isDemoMode
-                ? undefined
-                : "rgba(255, 255, 255, 0.02)",
-            }}
-            title="Toggle demo mode"
-          >
-            DEMO
-          </button>
-        )}
-
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="p-1.5 rounded-md transition-all duration-200 disabled:opacity-40 hover:bg-white/[0.03]"
-            style={{ border: "1px solid rgba(255, 255, 255, 0.04)" }}
-            title="Refresh data"
-          >
-            <RefreshCw
-              className={`h-3.5 w-3.5 text-[#64748b] ${
-                isRefreshing ? "animate-spin" : ""
-              }`}
-            />
-          </button>
-        )}
       </div>
     </header>
   );
