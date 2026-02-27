@@ -121,6 +121,14 @@ function Map({ children, styles, ...props }: MapProps) {
     }
   }, [resolvedTheme, mapStyles]);
 
+  useEffect(() => {
+    if (mapRef.current && isLoaded) {
+      if (props.zoom !== undefined) mapRef.current.easeTo({ zoom: props.zoom });
+      if (props.pitch !== undefined) mapRef.current.easeTo({ pitch: props.pitch });
+      if (props.bearing !== undefined) mapRef.current.easeTo({ bearing: props.bearing });
+    }
+  }, [props.zoom, props.pitch, props.bearing, isLoaded]);
+
   const isLoading = !isMounted || !isLoaded || !isStyleLoaded;
 
   return (
@@ -821,6 +829,7 @@ type MapRouteProps = {
   width?: number;
   opacity?: number;
   dashArray?: [number, number];
+  animated?: boolean;
 };
 
 function MapRoute({
@@ -829,11 +838,14 @@ function MapRoute({
   width = 3,
   opacity = 0.8,
   dashArray,
+  animated = false,
 }: MapRouteProps) {
   const { map, isLoaded } = useMap();
   const id = useId();
   const sourceId = `route-source-${id}`;
   const layerId = `route-layer-${id}`;
+  const particleSourceId = `particle-source-${id}`;
+  const particleLayerId = `particle-layer-${id}`;
 
   // Add source and layer on mount
   useEffect(() => {
@@ -861,17 +873,45 @@ function MapRoute({
       },
     });
 
+    let animationFrame: number = 0;
+
+    if (animated) {
+      map.addSource(particleSourceId, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Point", coordinates: [] },
+        },
+      });
+
+      map.addLayer({
+        id: particleLayerId,
+        type: "circle",
+        source: particleSourceId,
+        paint: {
+          "circle-radius": width * 1.5,
+          "circle-color": "#ffffff",
+          "circle-opacity": 0.9,
+          "circle-blur": 0.5,
+        },
+      });
+    }
+
     return () => {
+      cancelAnimationFrame(animationFrame);
       try {
+        if (map.getLayer(particleLayerId)) map.removeLayer(particleLayerId);
+        if (map.getSource(particleSourceId)) map.removeSource(particleSourceId);
         if (map.getLayer(layerId)) map.removeLayer(layerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
       } catch {
         // ignore
       }
     };
-  }, [isLoaded, map, sourceId, layerId]);
+  }, [isLoaded, map, sourceId, layerId, particleSourceId, particleLayerId, animated, width]);
 
-  // When coordinates change, update the source data
+  // When coordinates change, update the source data and start animation
   useEffect(() => {
     if (!isLoaded || !map || coordinates.length < 2) return;
 
@@ -883,7 +923,48 @@ function MapRoute({
         geometry: { type: "LineString", coordinates },
       });
     }
-  }, [isLoaded, map, coordinates, sourceId]);
+
+    let animationFrame: number = 0;
+
+    if (animated) {
+      const particleSource = map.getSource(particleSourceId) as MapLibreGL.GeoJSONSource;
+      let startTime: number | null = null;
+      const duration = 2000; // 2 seconds per cycle
+
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = ((timestamp - startTime) % duration) / duration;
+        
+        // Find current point on the line based on progress
+        const totalPoints = coordinates.length;
+        const index = Math.min(Math.floor(progress * (totalPoints - 1)), totalPoints - 2);
+        const nextIndex = index + 1;
+        const segmentProgress = (progress * (totalPoints - 1)) - index;
+
+        const [lon1, lat1] = coordinates[index];
+        const [lon2, lat2] = coordinates[nextIndex];
+        
+        const currentLon = lon1 + (lon2 - lon1) * segmentProgress;
+        const currentLat = lat1 + (lat2 - lat1) * segmentProgress;
+
+        if (particleSource) {
+          particleSource.setData({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "Point", coordinates: [currentLon, currentLat] },
+          });
+        }
+
+        animationFrame = requestAnimationFrame(animate);
+      };
+
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+  }, [isLoaded, map, coordinates, sourceId, particleSourceId, animated]);
 
   useEffect(() => {
     if (!isLoaded || !map || !map.getLayer(layerId)) return;

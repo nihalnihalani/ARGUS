@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
+  ResizablePanel,
+  ResizablePanelGroup,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import { Maximize2, Minimize2, X, ExternalLink, ShieldAlert, FileText, Fingerprint, Search } from "lucide-react";
+import {
   CircuitBoard,
   GitBranch,
   Skull,
@@ -28,6 +34,7 @@ import TrajectoryViewer from "@/components/TrajectoryViewer";
 import { BentoItem } from "@/components/ui/holographic-interface";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import { RadarLoader } from "@/components/ui/radar-loader";
+import { CommandPalette } from "@/components/CommandPalette";
 import type {
   GraphNode,
   GraphEdge,
@@ -415,6 +422,7 @@ export default function Dashboard() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [trajectoryTaskId, setTrajectoryTaskId] = useState<string | null>(null);
   const [trajectoryOpen, setTrajectoryOpen] = useState(false);
+  const [maximizedPanel, setMaximizedPanel] = useState<string | null>(null);
 
   const arcs = useMemo<AttackArc[]>(() => {
     if (isDemoMode) return DEMO_ARCS;
@@ -722,7 +730,7 @@ export default function Dashboard() {
   // -----------------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center" style={{ background: '#060a13' }}>
+      <div className="h-screen w-screen flex items-center justify-center" style={{ background: '#0A0E17' }}>
         <RadarLoader
           size={140}
           label="Initializing ARGUS..."
@@ -733,10 +741,250 @@ export default function Dashboard() {
   }
 
   // -----------------------------------------------------------------------
+  // Render Helpers
+  // -----------------------------------------------------------------------
+  const renderMaximizeButton = (panelId: string) => {
+    const isMaximized = maximizedPanel === panelId;
+    return (
+      <button
+        onClick={() => setMaximizedPanel(isMaximized ? null : panelId)}
+        className="absolute top-3 right-3 z-50 p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white border border-white/[0.05] transition-colors"
+        title={isMaximized ? "Restore" : "Maximize"}
+      >
+        {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </button>
+    );
+  };
+
+  const renderNodeDetails = () => {
+    return (
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute top-0 right-0 w-[340px] h-full z-40 bg-[rgba(10,14,23,0.95)] backdrop-blur-2xl border-l border-white/[0.06] shadow-2xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+              <div className="flex items-center gap-2">
+                <span className={`inline-block w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] ${
+                  selectedNode.type === 'ThreatActor' ? 'text-red-500 bg-red-500' :
+                  selectedNode.type === 'Vulnerability' ? 'text-orange-500 bg-orange-500' :
+                  selectedNode.type === 'Organization' ? 'text-green-500 bg-green-500' :
+                  'text-blue-500 bg-blue-500'
+                }`} />
+                <h3 className="text-xs font-mono uppercase tracking-widest text-slate-400">{selectedNode.type}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <h2 className="text-lg font-bold text-white mb-4 tracking-tight leading-tight">{selectedNode.name}</h2>
+              
+              {/* Core Attributes */}
+              <div className="flex flex-col gap-3 mb-6">
+                {selectedNode.cve_id && (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <Fingerprint className="h-4 w-4" />
+                      <span className="text-xs uppercase tracking-wider">CVE ID</span>
+                    </div>
+                    <span className="text-sm font-mono text-white">{selectedNode.cve_id}</span>
+                  </div>
+                )}
+                {selectedNode.cvss && (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <ShieldAlert className="h-4 w-4" />
+                      <span className="text-xs uppercase tracking-wider">CVSS Score</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${selectedNode.cvss >= 9 ? 'bg-red-500' : selectedNode.cvss >= 7 ? 'bg-orange-500' : 'bg-yellow-500'}`}
+                          style={{ width: `${(selectedNode.cvss / 10) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-mono font-bold text-white">{selectedNode.cvss.toFixed(1)}</span>
+                    </div>
+                  </div>
+                )}
+                {selectedNode.country && (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <Globe className="h-4 w-4" />
+                      <span className="text-xs uppercase tracking-wider">Origin</span>
+                    </div>
+                    <span className="text-sm font-medium text-white">{selectedNode.country}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Description/Summary (Mocked or real if exists) */}
+              <div className="mb-6">
+                <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-widest mb-2">
+                  <FileText className="h-3.5 w-3.5 text-slate-400" />
+                  Intelligence Summary
+                </h4>
+                <p className="text-[13px] text-slate-400 leading-relaxed bg-white/[0.02] p-3 rounded-lg border border-white/[0.04]">
+                  {((selectedNode as any).description) || `Automated intelligence gathering indicates active reconnaissance and exploitation campaigns involving ${selectedNode.name}. Our scouts are tracking this entity across multiple threat feeds and dark web sources.`}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-auto pt-4">
+                <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white text-[#0A0E17] font-semibold text-sm hover:bg-slate-200 transition-colors">
+                  <Search className="h-4 w-4" />
+                  Deep Investigation
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
+  const renderGraphPanel = () => (
+    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden group">
+      {renderMaximizeButton('graph')}
+      {renderNodeDetails()}
+      <ThreatGraph
+        nodes={nodes}
+        edges={edges}
+        attackPath={attackPath}
+        onNodeClick={handleNodeClick}
+      />
+    </div>
+  );
+
+  const renderMapPanel = () => (
+    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden group">
+      {renderMaximizeButton('map')}
+      <AttackMap arcs={arcs} />
+      <div className="absolute top-3 left-3 z-20 pointer-events-none">
+        <ExpandableTabs
+          tabs={[
+            { title: `${stats.nodeCount} Nodes`, icon: CircuitBoard },
+            { title: `${stats.edgeCount} Edges`, icon: GitBranch },
+            { type: "separator" as const },
+            { title: `${stats.threatActorCount} Actors`, icon: Skull },
+            { title: `${stats.vulnerabilityCount} Vulns`, icon: Bug },
+            { title: `${stats.criticalCount} Critical`, icon: Scan },
+            { type: "separator" as const },
+            { title: `${stats.activeScouts} Scouts`, icon: Radar },
+          ]}
+          size="sm"
+          activeColor="text-red-400"
+          className="border-white/[0.06] bg-[rgba(6,10,19,0.75)] backdrop-blur-md shadow-lg shadow-black/20 pointer-events-auto"
+        />
+      </div>
+    </div>
+  );
+
+  const renderFeedPanel = () => (
+    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden group">
+      {renderMaximizeButton('feed')}
+      <div className="h-full grid grid-cols-[40%_60%]" style={{ gap: '1px', background: 'rgba(255, 255, 255, 0.02)' }}>
+        <div style={{ background: '#0A0E17' }} className="overflow-hidden">
+          <LiveFeed items={feedItems} />
+        </div>
+        <div style={{ background: '#0A0E17' }} className="overflow-hidden">
+          <ThreatBrief brief={threatBrief} isLoading={isBriefLoading} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBentoPanel = () => (
+    <div className="relative h-full w-full bg-[#0A0E17] overflow-hidden flex flex-col group">
+      {renderMaximizeButton('bento')}
+      {/* Bento Grid — top portion */}
+      <div className="flex-1 min-h-0 p-3 mt-8">
+        <div className="h-full grid grid-cols-2 grid-rows-2 gap-2">
+          <BentoItem
+            title="Threat Graph"
+            description="Real-time entity relationship mapping across the global threat landscape"
+            icon={<IconTopologyStar3 className="h-4 w-4" />}
+            accentColor="rgba(239, 68, 68, 0.6)"
+          >
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-slate-200" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.nodeCount}</span>
+              <span className="text-[9px] text-slate-600">nodes</span>
+              <span className="text-[9px] text-slate-700 mx-0.5">/</span>
+              <span className="text-lg font-bold text-slate-200" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.edgeCount}</span>
+              <span className="text-[9px] text-slate-600">edges</span>
+            </div>
+          </BentoItem>
+
+          <BentoItem
+            title="Global Monitor"
+            description="Cross-border attack vector tracking with nation-state origin attribution"
+            icon={<Network className="h-4 w-4" />}
+            accentColor="rgba(59, 130, 246, 0.6)"
+          >
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-blue-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{arcs.length}</span>
+              <span className="text-[9px] text-slate-600">active arcs</span>
+            </div>
+          </BentoItem>
+
+          <BentoItem
+            title="AI Briefing"
+            description="Autonomous threat assessment with continuous CISA gap coverage"
+            icon={<IconShieldBolt className="h-4 w-4" />}
+            accentColor="rgba(168, 85, 247, 0.6)"
+          >
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider ${
+                threatBrief?.overall_threat_level === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                threatBrief?.overall_threat_level === 'high' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              }`}>
+                {threatBrief?.overall_threat_level || 'analyzing'}
+              </span>
+              <span className="text-[9px] text-slate-600">{stats.criticalCount} critical</span>
+            </div>
+          </BentoItem>
+
+          <BentoItem
+            title="Scout Fleet"
+            description="Autonomous agents monitoring NVD, GitHub, Twitter, and dark web feeds"
+            icon={<Radar className="h-4 w-4" />}
+            accentColor="rgba(46, 213, 115, 0.6)"
+          >
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-emerald-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.activeScouts}</span>
+              <span className="text-[9px] text-slate-600">active scouts</span>
+            </div>
+          </BentoItem>
+        </div>
+      </div>
+
+      {/* Search — bottom portion */}
+      <div className="shrink-0 border-t border-white/[0.04]" style={{ height: '40%' }}>
+        <SearchBar
+          onResults={handleSearchResults}
+          onViewTrajectory={handleViewTrajectory}
+        />
+      </div>
+    </div>
+  );
+
+  // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#060a13]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0A0E17]">
       <Sidebar />
       <div className="flex-1 flex flex-col h-screen overflow-hidden tg-atmosphere tg-scanline relative">
         {/* Header */}
@@ -749,157 +997,43 @@ export default function Dashboard() {
           onToggleDemo={toggleDemoMode}
         />
 
-        {/* Main Grid */}
-        <div className="flex-1 grid grid-cols-[55%_45%] grid-rows-[55%_45%] overflow-hidden relative z-10"
-          style={{ gap: '1px', background: 'rgba(255, 255, 255, 0.02)' }}
-        >
-        {/* Top Left: D3.js Force Graph */}
-        <motion.div
-          className="relative overflow-hidden"
-          style={{ background: '#060a13' }}
-          custom={0}
-          initial="hidden"
-          animate="visible"
-          variants={panelVariants}
-        >
-          <ThreatGraph
-            nodes={nodes}
-            edges={edges}
-            attackPath={attackPath}
-            onNodeClick={handleNodeClick}
-          />
-        </motion.div>
-
-        {/* Top Right: Attack Map + floating stat tabs */}
-        <motion.div
-          className="relative overflow-hidden"
-          style={{ background: '#060a13' }}
-          custom={1}
-          initial="hidden"
-          animate="visible"
-          variants={panelVariants}
-        >
-          <AttackMap arcs={arcs} />
-
-          {/* Floating stat tabs — top-left of map */}
-          <div className="absolute top-3 left-3 z-20">
-            <ExpandableTabs
-              tabs={[
-                { title: `${stats.nodeCount} Nodes`, icon: CircuitBoard },
-                { title: `${stats.edgeCount} Edges`, icon: GitBranch },
-                { type: "separator" as const },
-                { title: `${stats.threatActorCount} Actors`, icon: Skull },
-                { title: `${stats.vulnerabilityCount} Vulns`, icon: Bug },
-                { title: `${stats.criticalCount} Critical`, icon: Scan },
-                { type: "separator" as const },
-                { title: `${stats.activeScouts} Scouts`, icon: Radar },
-              ]}
-              size="sm"
-              activeColor="text-red-400"
-              className="border-white/[0.06] bg-[rgba(6,10,19,0.75)] backdrop-blur-md shadow-lg shadow-black/20"
-            />
+        {/* Main Content Area */}
+        {maximizedPanel ? (
+          <div className="flex-1 overflow-hidden relative z-10 w-full h-full bg-[#0A0E17]">
+            {maximizedPanel === 'graph' && renderGraphPanel()}
+            {maximizedPanel === 'map' && renderMapPanel()}
+            {maximizedPanel === 'feed' && renderFeedPanel()}
+            {maximizedPanel === 'bento' && renderBentoPanel()}
           </div>
-        </motion.div>
-
-        {/* Bottom Left: LiveFeed + ThreatBrief */}
-        <motion.div
-          className="overflow-hidden"
-          style={{ background: '#060a13' }}
-          custom={2}
-          initial="hidden"
-          animate="visible"
-          variants={panelVariants}
-        >
-          <div className="h-full grid grid-cols-[40%_60%]" style={{ gap: '1px', background: 'rgba(255, 255, 255, 0.02)' }}>
-            <div style={{ background: '#060a13' }} className="overflow-hidden">
-              <LiveFeed items={feedItems} />
-            </div>
-            <div style={{ background: '#060a13' }} className="overflow-hidden">
-              <ThreatBrief brief={threatBrief} isLoading={isBriefLoading} />
-            </div>
+        ) : (
+          <div className="flex-1 overflow-hidden relative z-10 p-[1px]" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+            <ResizablePanelGroup orientation="vertical">
+              <ResizablePanel defaultSize={55} minSize={20}>
+                <ResizablePanelGroup orientation="horizontal">
+                  <ResizablePanel defaultSize={55} minSize={20}>
+                    {renderGraphPanel()}
+                  </ResizablePanel>
+                  <ResizableHandle className="w-[1px] bg-white/[0.04] hover:bg-red-500/50 transition-colors cursor-col-resize z-50" />
+                  <ResizablePanel defaultSize={45} minSize={20}>
+                    {renderMapPanel()}
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </ResizablePanel>
+              <ResizableHandle className="h-[1px] bg-white/[0.04] hover:bg-red-500/50 transition-colors cursor-row-resize z-50" />
+              <ResizablePanel defaultSize={45} minSize={20}>
+                <ResizablePanelGroup orientation="horizontal">
+                  <ResizablePanel defaultSize={55} minSize={20}>
+                    {renderFeedPanel()}
+                  </ResizablePanel>
+                  <ResizableHandle className="w-[1px] bg-white/[0.04] hover:bg-red-500/50 transition-colors cursor-col-resize z-50" />
+                  <ResizablePanel defaultSize={45} minSize={20}>
+                    {renderBentoPanel()}
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
-        </motion.div>
-
-        {/* Bottom Right: Bento Grid + Search */}
-        <motion.div
-          className="overflow-hidden flex flex-col"
-          style={{ background: '#060a13' }}
-          custom={3}
-          initial="hidden"
-          animate="visible"
-          variants={panelVariants}
-        >
-          {/* Bento Grid — top portion */}
-          <div className="flex-1 min-h-0 p-3">
-            <div className="h-full grid grid-cols-2 grid-rows-2 gap-2">
-              <BentoItem
-                title="Threat Graph"
-                description="Real-time entity relationship mapping across the global threat landscape"
-                icon={<IconTopologyStar3 className="h-4 w-4" />}
-                accentColor="rgba(239, 68, 68, 0.6)"
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-slate-200" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.nodeCount}</span>
-                  <span className="text-[9px] text-slate-600">nodes</span>
-                  <span className="text-[9px] text-slate-700 mx-0.5">/</span>
-                  <span className="text-lg font-bold text-slate-200" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.edgeCount}</span>
-                  <span className="text-[9px] text-slate-600">edges</span>
-                </div>
-              </BentoItem>
-
-              <BentoItem
-                title="Global Monitor"
-                description="Cross-border attack vector tracking with nation-state origin attribution"
-                icon={<Network className="h-4 w-4" />}
-                accentColor="rgba(59, 130, 246, 0.6)"
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-blue-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{arcs.length}</span>
-                  <span className="text-[9px] text-slate-600">active arcs</span>
-                </div>
-              </BentoItem>
-
-              <BentoItem
-                title="AI Briefing"
-                description="Autonomous threat assessment with continuous CISA gap coverage"
-                icon={<IconShieldBolt className="h-4 w-4" />}
-                accentColor="rgba(168, 85, 247, 0.6)"
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider ${
-                    threatBrief?.overall_threat_level === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    threatBrief?.overall_threat_level === 'high' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                    'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                  }`}>
-                    {threatBrief?.overall_threat_level || 'analyzing'}
-                  </span>
-                  <span className="text-[9px] text-slate-600">{stats.criticalCount} critical</span>
-                </div>
-              </BentoItem>
-
-              <BentoItem
-                title="Scout Fleet"
-                description="Autonomous agents monitoring NVD, GitHub, Twitter, and dark web feeds"
-                icon={<Radar className="h-4 w-4" />}
-                accentColor="rgba(46, 213, 115, 0.6)"
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-emerald-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{stats.activeScouts}</span>
-                  <span className="text-[9px] text-slate-600">active scouts</span>
-                </div>
-              </BentoItem>
-            </div>
-          </div>
-
-          {/* Search — bottom portion */}
-          <div className="shrink-0 border-t border-white/[0.04]" style={{ height: '40%' }}>
-            <SearchBar
-              onResults={handleSearchResults}
-              onViewTrajectory={handleViewTrajectory}
-            />
-          </div>
-        </motion.div>
-      </div>
+        )}
 
       {/* Trajectory Modal */}
       <TrajectoryViewer
@@ -907,6 +1041,8 @@ export default function Dashboard() {
         onOpenChange={setTrajectoryOpen}
         taskId={trajectoryTaskId}
       />
+
+      <CommandPalette />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
+import { ZoomIn, ZoomOut, Maximize, Target, Search, Info, ShieldAlert } from 'lucide-react';
 import type { GraphNode, GraphEdge, NodeType } from '@/lib/types';
 
 // --- Shape path generators ---
@@ -163,6 +164,7 @@ export default function ThreatGraph({
   const svgRef = useRef<SVGSVGElement>(null);
   const simulationRef = useRef<d3.Simulation<SimNode, SimLink> | null>(null);
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   const [simNodes, setSimNodes] = useState<SimNode[]>([]);
   const [simLinks, setSimLinks] = useState<SimLink[]>([]);
@@ -175,6 +177,8 @@ export default function ThreatGraph({
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: propWidth ?? 800, height: propHeight ?? 600 });
+  const [hiddenNodeTypes, setHiddenNodeTypes] = useState<Set<NodeType>>(new Set());
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: GraphNode } | null>(null);
 
   // Responsive sizing
   useEffect(() => {
@@ -201,13 +205,16 @@ export default function ThreatGraph({
   useEffect(() => {
     if (nodes.length === 0) return;
 
+    const visibleNodes = nodes.filter(n => !hiddenNodeTypes.has(n.type as NodeType));
+    const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
+
     const nodeMap = new Map<string, SimNode>();
     const existingMap = new Map<string, SimNode>();
     if (simulationRef.current) {
       simulationRef.current.nodes().forEach((n) => existingMap.set(n.id, n));
     }
 
-    const newSimNodes: SimNode[] = nodes.map((n) => {
+    const newSimNodes: SimNode[] = visibleNodes.map((n) => {
       const existing = existingMap.get(n.id);
       if (existing) {
         return { ...n, x: existing.x, y: existing.y, fx: existing.fx, fy: existing.fy } as SimNode;
@@ -217,7 +224,11 @@ export default function ThreatGraph({
     newSimNodes.forEach((n) => nodeMap.set(n.id, n));
 
     const newSimLinks: SimLink[] = edges
-      .filter((e) => nodeMap.has(typeof e.source === 'string' ? e.source : e.source) && nodeMap.has(typeof e.target === 'string' ? e.target : e.target))
+      .filter((e) => {
+        const s = typeof e.source === 'string' ? e.source : e.source;
+        const t = typeof e.target === 'string' ? e.target : e.target;
+        return visibleNodeIds.has(s) && visibleNodeIds.has(t);
+      })
       .map((e) => ({
         id: e.id,
         source: e.source,
@@ -251,7 +262,7 @@ export default function ThreatGraph({
     return () => {
       sim.stop();
     };
-  }, [nodes, edges, w, h]);
+  }, [nodes, edges, w, h, hiddenNodeTypes]);
 
   // Zoom behavior
   useEffect(() => {
@@ -264,9 +275,62 @@ export default function ThreatGraph({
         setTransform(event.transform);
       });
     svg.call(zoomBehavior);
+    zoomBehaviorRef.current = zoomBehavior;
     return () => {
       svg.on('.zoom', null);
+      zoomBehaviorRef.current = null;
     };
+  }, []);
+
+  // Graph controls
+  const handleZoomIn = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    d3.select(svgRef.current).transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.3);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    d3.select(svgRef.current).transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.7);
+  }, []);
+
+  const handleFitToScreen = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current || simNodes.length === 0) return;
+    const padding = 40;
+    const minX = d3.min(simNodes, n => n.x) || 0;
+    const maxX = d3.max(simNodes, n => n.x) || 0;
+    const minY = d3.min(simNodes, n => n.y) || 0;
+    const maxY = d3.max(simNodes, n => n.y) || 0;
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+    
+    if (width === 0 || height === 0) return;
+
+    const scale = Math.max(0.1, Math.min(6, 0.9 / Math.max(width / w, height / h)));
+    const transform = d3.zoomIdentity
+      .translate(w / 2, h / 2)
+      .scale(scale)
+      .translate(-(minX + width / 2), -(minY + height / 2));
+
+    d3.select(svgRef.current).transition().duration(750).call(zoomBehaviorRef.current.transform, transform);
+  }, [simNodes, w, h]);
+
+  const handleCenter = useCallback(() => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    const transform = d3.zoomIdentity.translate(w / 2, h / 2).scale(1).translate(-w / 2, -h / 2);
+    d3.select(svgRef.current).transition().duration(750).call(zoomBehaviorRef.current.transform, transform);
+  }, [w, h]);
+
+  const toggleNodeType = useCallback((type: NodeType) => {
+    setHiddenNodeTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
   }, []);
 
   // Drag handlers
@@ -340,16 +404,36 @@ export default function ThreatGraph({
   const handleNodeClick = useCallback(
     (e: React.MouseEvent, node: GraphNode) => {
       e.stopPropagation();
+      setContextMenu(null);
       setSelectedNodeId(node.id);
       onNodeClick?.(node);
     },
     [onNodeClick]
   );
 
+  const handleNodeContextMenu = useCallback(
+    (e: React.MouseEvent, node: GraphNode) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = containerRef.current?.getBoundingClientRect();
+      const x = e.clientX - (rect?.left ?? 0);
+      const y = e.clientY - (rect?.top ?? 0);
+      setContextMenu({ x, y, node });
+    },
+    []
+  );
+
+  const handleGraphClick = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
   const handleNodeHover = useCallback(
     (e: React.MouseEvent, node: GraphNode | null) => {
       if (node) {
-        setTooltip({ x: e.clientX, y: e.clientY, node });
+        const rect = containerRef.current?.getBoundingClientRect();
+        const x = e.clientX - (rect?.left ?? 0) + 12;
+        const y = e.clientY - (rect?.top ?? 0) - 10;
+        setTooltip({ x, y, node });
       } else {
         setTooltip(null);
       }
@@ -396,6 +480,7 @@ export default function ThreatGraph({
         style: { cursor: 'grab', transition: 'opacity 0.5s ease' } as React.CSSProperties,
         onMouseDown: (e: React.MouseEvent) => handleDragStart(e, node),
         onClick: (e: React.MouseEvent) => handleNodeClick(e, node),
+        onContextMenu: (e: React.MouseEvent) => handleNodeContextMenu(e, node),
         onMouseEnter: (e: React.MouseEvent) => handleNodeHover(e, node),
         onMouseLeave: (e: React.MouseEvent) => handleNodeHover(e, null),
       };
@@ -501,7 +586,7 @@ export default function ThreatGraph({
   const tooltipStyle = tooltip ? getNodeStyle(tooltip.node) : null;
 
   return (
-    <div ref={containerRef} className="relative w-full h-full overflow-hidden" style={{ background: '#060a13' }}>
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden" style={{ background: '#0A0E17' }} onClick={handleGraphClick} onContextMenu={e => e.preventDefault()}>
       <svg
         ref={svgRef}
         width={w}
@@ -540,13 +625,13 @@ export default function ThreatGraph({
       </svg>
 
       {/* Tooltip */}
-      {tooltip && tooltipInfo && tooltipStyle && (
+      {tooltip && tooltipInfo && tooltipStyle && !contextMenu && (
         <div
           className="absolute pointer-events-none z-50 max-w-[220px]"
           style={{
-            left: tooltip.x - (containerRef.current?.getBoundingClientRect().left ?? 0) + 12,
-            top: tooltip.y - (containerRef.current?.getBoundingClientRect().top ?? 0) - 10,
-            background: 'rgba(10, 18, 32, 0.9)',
+            left: tooltip.x,
+            top: tooltip.y,
+            background: 'rgba(10, 14, 23, 0.9)',
             backdropFilter: 'blur(12px)',
             border: '1px solid rgba(255, 255, 255, 0.06)',
             borderRadius: '10px',
@@ -573,27 +658,100 @@ export default function ThreatGraph({
         </div>
       )}
 
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="absolute z-[60] w-48 rounded-lg overflow-hidden shadow-2xl flex flex-col"
+          style={{
+            left: contextMenu.x + 10,
+            top: contextMenu.y + 10,
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-2 border-b border-white/[0.05] bg-white/[0.02]">
+            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{contextMenu.node.type}</div>
+            <div className="text-xs font-medium text-slate-200 truncate" title={contextMenu.node.name}>{contextMenu.node.name}</div>
+          </div>
+          <div className="flex flex-col py-1">
+            <button
+              onClick={() => {
+                onNodeClick?.(contextMenu.node);
+                setContextMenu(null);
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors text-left"
+            >
+              <Info className="h-3.5 w-3.5 text-blue-400" />
+              View Details
+            </button>
+            <button
+              onClick={() => {
+                // In a real app, this would trigger a deep dive or specialized view
+                setContextMenu(null);
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors text-left"
+            >
+              <Search className="h-3.5 w-3.5 text-amber-400" />
+              Investigate
+            </button>
+            {contextMenu.node.type === 'ThreatActor' && (
+              <button
+                onClick={() => {
+                  // Simulate trigger attack path to a random target
+                  onNodeClick?.(contextMenu.node);
+                  setContextMenu(null);
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors text-left"
+              >
+                <Target className="h-3.5 w-3.5 text-red-400" />
+                Find Attack Path
+              </button>
+            )}
+            {contextMenu.node.type === 'Vulnerability' && (
+              <button
+                onClick={() => {
+                  setContextMenu(null);
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors text-left"
+              >
+                <ShieldAlert className="h-3.5 w-3.5 text-orange-400" />
+                Find Exploits
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Legend */}
       {!isAttackMode && nodes.length > 0 && (
         <div
-          className="absolute bottom-3 left-3 p-2.5 text-[10px]"
+          className="absolute bottom-3 left-3 p-2.5 text-[10px] pointer-events-auto select-none"
           style={{
-            background: 'rgba(10, 18, 32, 0.8)',
+            background: 'rgba(10, 14, 23, 0.8)',
             backdropFilter: 'blur(8px)',
             border: '1px solid rgba(255, 255, 255, 0.04)',
             borderRadius: '10px',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
           }}
         >
+          <div className="font-semibold text-slate-300 mb-2 px-1 text-[9px] uppercase tracking-widest opacity-80">Entity Types</div>
           {(['ThreatActor', 'Vulnerability', 'Exploit', 'Software', 'Organization', 'Malware', 'Campaign', 'AttackTechnique'] as NodeType[]).map((type) => {
             const style = getNodeStyle({ id: '', type, name: '' });
+            const isHidden = hiddenNodeTypes.has(type);
             return (
-              <div key={type} className="flex items-center gap-1.5 mb-0.5 last:mb-0">
+              <div 
+                key={type} 
+                className={`flex items-center gap-2 mb-1.5 last:mb-0 cursor-pointer hover:bg-white/[0.05] p-1 rounded transition-colors ${isHidden ? 'opacity-40' : ''}`}
+                onClick={() => toggleNodeType(type)}
+              >
                 <span
-                  className="inline-block w-2 h-2 rounded-full"
-                  style={{ backgroundColor: style.color, boxShadow: `0 0 4px ${style.color}40` }}
+                  className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: style.color, boxShadow: `0 0 6px ${style.color}60` }}
                 />
-                <span className="text-[#64748b]">{type}</span>
+                <span className={`text-[#94a3b8] ${isHidden ? 'line-through decoration-slate-600' : ''}`}>{type}</span>
               </div>
             );
           })}
@@ -609,6 +767,38 @@ export default function ThreatGraph({
           </div>
         </div>
       )}
+
+      {/* Graph Controls */}
+      <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 pointer-events-auto">
+        <button
+          onClick={handleZoomIn}
+          className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white border border-white/[0.05] transition-colors"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white border border-white/[0.05] transition-colors"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleFitToScreen}
+          className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white border border-white/[0.05] transition-colors"
+          title="Fit to Content"
+        >
+          <Maximize className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleCenter}
+          className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white border border-white/[0.05] transition-colors"
+          title="Center Canvas"
+        >
+          <Target className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

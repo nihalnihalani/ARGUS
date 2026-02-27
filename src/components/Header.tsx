@@ -32,7 +32,7 @@ export default function Header({
 }: HeaderProps) {
   return (
     <header
-      className="relative flex items-center justify-between px-6 py-3 z-50 border-b border-white/[0.04] bg-[#060a13]/80 backdrop-blur-xl shadow-md"
+      className="relative flex items-center justify-between px-6 py-3 z-50 border-b border-white/[0.04] bg-[#0A0E17]/80 backdrop-blur-xl shadow-md"
     >
       {/* Left: Logo + Context / Threat Level */}
       <div className="flex items-center gap-4 shrink-0">

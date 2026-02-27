@@ -162,7 +162,7 @@ export default function SearchBar({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch(query);
             }}
-            placeholder="Search CVE, IP, domain, threat actor..."
+            placeholder="Search CVE, IP, domain... (Cmd+K)"
             className="w-full rounded-lg pl-9 pr-9 py-2 text-[13px] text-[#e2e8f0] placeholder:text-[#334155] focus:outline-none transition-all duration-200"
             style={{
               background: "rgba(255, 255, 255, 0.03)",

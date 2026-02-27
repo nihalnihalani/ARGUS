@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Layers } from 'lucide-react';
 import {
   Map as MapComponent,
   MapMarker,
@@ -118,6 +119,7 @@ interface AttackMapProps {
 }
 
 export default function AttackMapInner({ arcs }: AttackMapProps) {
+  const [is3D, setIs3D] = useState(true);
   const points = useMemo(() => derivePoints(arcs), [arcs]);
 
   const arcRoutes = useMemo(
@@ -134,11 +136,11 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
   );
 
   return (
-    <div className="relative w-full h-full overflow-hidden" style={{ background: '#060a13' }}>
+    <div className="relative w-full h-full overflow-hidden" style={{ background: '#0A0E17' }}>
       <MapComponent
         center={[-20, 30]}
-        zoom={1.5}
-        pitch={15}
+        zoom={is3D ? 1.5 : 1}
+        pitch={is3D ? 45 : 0}
         maxPitch={60}
       >
         {/* Controls */}
@@ -149,6 +151,17 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
           showFullscreen
         />
 
+        {/* 2D/3D Toggle */}
+        <div className="absolute top-3 right-3 z-10">
+          <button
+            onClick={() => setIs3D(!is3D)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(10,14,23,0.8)] backdrop-blur-md border border-white/[0.04] text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors shadow-lg pointer-events-auto"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {is3D ? '3D View' : '2D Map'}
+          </button>
+        </div>
+
         {/* Great circle arc routes */}
         {arcRoutes.map((route) => (
           <MapRoute
@@ -157,6 +170,7 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
             color={route.color}
             width={2}
             opacity={0.7}
+            animated={true}
           />
         ))}
 
