@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Network, 
-  Globe2, 
-  ShieldAlert, 
+import {
+  Network,
+  Globe2,
+  ShieldAlert,
   Search,
   Zap,
   Radio,
-  FileText
+  FileText,
+  RefreshCw,
+  Box,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -20,14 +22,20 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
-export function CommandPalette() {
+interface CommandPaletteProps {
+  onSwitchView?: (view: 'graph' | 'graph3d' | 'map') => void;
+  onSwitchTab?: (tab: 'intelligence' | 'investigate' | 'sponsors') => void;
+  onRefresh?: () => void;
+}
+
+export function CommandPalette({ onSwitchView, onSwitchTab, onRefresh }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        setOpen((prev) => !prev);
       }
     };
 
@@ -45,40 +53,45 @@ export function CommandPalette() {
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        
+
         <CommandGroup heading="Views">
-          <CommandItem onSelect={() => runCommand(() => {})}>
+          <CommandItem onSelect={() => runCommand(() => onSwitchView?.('graph'))}>
             <Network className="mr-2 h-4 w-4 text-blue-400" />
-            <span>Focus Threat Graph</span>
+            <span>2D Threat Graph</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => {})}>
+          <CommandItem onSelect={() => runCommand(() => onSwitchView?.('graph3d'))}>
+            <Box className="mr-2 h-4 w-4 text-fuchsia-400" />
+            <span>3D Threat Graph</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => onSwitchView?.('map'))}>
             <Globe2 className="mr-2 h-4 w-4 text-green-400" />
-            <span>Focus Global Map</span>
-          </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => {})}>
-            <Radio className="mr-2 h-4 w-4 text-emerald-400" />
-            <span>Focus Live Feed</span>
-          </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => {})}>
-            <FileText className="mr-2 h-4 w-4 text-purple-400" />
-            <span>Focus AI Brief</span>
+            <span>Global Attack Map</span>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
-        
-        <CommandGroup heading="Quick Actions">
-          <CommandItem onSelect={() => runCommand(() => {})}>
+
+        <CommandGroup heading="Panels">
+          <CommandItem onSelect={() => runCommand(() => onSwitchTab?.('intelligence'))}>
+            <Radio className="mr-2 h-4 w-4 text-emerald-400" />
+            <span>Intelligence Feed</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => onSwitchTab?.('investigate'))}>
             <Search className="mr-2 h-4 w-4 text-slate-400" />
-            <span>Investigate IP/Domain...</span>
+            <span>Investigation Panel</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => {})}>
-            <ShieldAlert className="mr-2 h-4 w-4 text-orange-400" />
-            <span>Scan CVE...</span>
+          <CommandItem onSelect={() => runCommand(() => onSwitchTab?.('sponsors'))}>
+            <FileText className="mr-2 h-4 w-4 text-purple-400" />
+            <span>Sponsor Tools</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => {})}>
-            <Zap className="mr-2 h-4 w-4 text-red-400" />
-            <span>Generate New Brief</span>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Actions">
+          <CommandItem onSelect={() => runCommand(() => onRefresh?.())}>
+            <RefreshCw className="mr-2 h-4 w-4 text-cyan-400" />
+            <span>Refresh Data</span>
           </CommandItem>
         </CommandGroup>
 

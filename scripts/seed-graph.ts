@@ -16,12 +16,12 @@ const threatActors = [
   { name: "BlackCat", aliases: ["ALPHV", "Noberus"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "financial", mitre_id: "G1023" },
   { name: "LockBit", aliases: ["LockBit 3.0", "LockBit Black"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "financial", mitre_id: "G1022" },
   { name: "Cl0p", aliases: ["TA505", "FIN11"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "financial", mitre_id: "G0092" },
-  { name: "Warlock", aliases: ["Warlocknet", "Shadow Warlock"], country: "Unknown", lat: 0, lon: 0, motivation: "destruction", mitre_id: "G2001" },
+  { name: "Warlock", aliases: ["Warlocknet", "Shadow Warlock"], country: "Iran", lat: 35.6892, lon: 51.3890, motivation: "destruction", mitre_id: "G2001" },
   { name: "FIN7", aliases: ["Carbanak", "Navigator Group"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "financial", mitre_id: "G0046" },
   { name: "Kimsuky", aliases: ["Velvet Chollima", "Emerald Sleet"], country: "North Korea", lat: 39.0392, lon: 125.7625, motivation: "espionage", mitre_id: "G0094" },
   { name: "Sandworm", aliases: ["Voodoo Bear", "Iridium", "Seashell Blizzard"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "destruction", mitre_id: "G0034" },
   { name: "Midnight Blizzard", aliases: ["Nobelium", "Star Blizzard"], country: "Russia", lat: 55.7558, lon: 37.6173, motivation: "espionage", mitre_id: "G0016" },
-  { name: "Rhysida", aliases: ["Vice Society 2.0"], country: "Unknown", lat: 0, lon: 0, motivation: "financial", mitre_id: "G2002" },
+  { name: "Rhysida", aliases: ["Vice Society 2.0"], country: "Eastern Europe", lat: 50.4501, lon: 30.5234, motivation: "financial", mitre_id: "G2002" },
 ];
 
 const vulnerabilities = [
@@ -112,11 +112,32 @@ const software = [
 ];
 
 const organizations = [
+  // North America
   { name: "Metro General Hospital", sector: "healthcare", city: "New York", lat: 40.7128, lon: -74.006 },
   { name: "First National Bank", sector: "finance", city: "Chicago", lat: 41.8781, lon: -87.6298 },
   { name: "Pacific Power Grid", sector: "energy", city: "Los Angeles", lat: 34.0522, lon: -118.2437 },
   { name: "Federal Systems Agency", sector: "government", city: "Washington DC", lat: 38.9072, lon: -77.0369 },
   { name: "NovaTech Solutions", sector: "technology", city: "San Francisco", lat: 37.7749, lon: -122.4194 },
+  { name: "Maple Leaf Telecom", sector: "telecommunications", city: "Toronto", lat: 43.6532, lon: -79.3832 },
+  // Europe
+  { name: "Deutsche Industriebank", sector: "finance", city: "Frankfurt", lat: 50.1109, lon: 8.6821 },
+  { name: "NHS Digital Trust", sector: "healthcare", city: "London", lat: 51.5074, lon: -0.1278 },
+  { name: "EU Cyber Command", sector: "government", city: "Brussels", lat: 50.8503, lon: 4.3517 },
+  { name: "Nordic Energy AS", sector: "energy", city: "Oslo", lat: 59.9139, lon: 10.7522 },
+  { name: "Airbus Defence Systems", sector: "defense", city: "Toulouse", lat: 43.6047, lon: 1.4442 },
+  // Asia-Pacific
+  { name: "Tokyo Stock Exchange", sector: "finance", city: "Tokyo", lat: 35.6762, lon: 139.6503 },
+  { name: "Samsung Semiconductor", sector: "technology", city: "Seoul", lat: 37.5665, lon: 126.9780 },
+  { name: "Tata Power Grid", sector: "energy", city: "Mumbai", lat: 19.0760, lon: 72.8777 },
+  { name: "Singapore MAS", sector: "government", city: "Singapore", lat: 1.3521, lon: 103.8198 },
+  { name: "Australia Defence Signals", sector: "defense", city: "Canberra", lat: -35.2809, lon: 149.1300 },
+  // Middle East
+  { name: "Saudi Aramco Digital", sector: "energy", city: "Dhahran", lat: 26.2361, lon: 50.0393 },
+  { name: "Emirates NBD", sector: "finance", city: "Dubai", lat: 25.2048, lon: 55.2708 },
+  // South America
+  { name: "Petrobras CERT", sector: "energy", city: "Rio de Janeiro", lat: -22.9068, lon: -43.1729 },
+  // Africa
+  { name: "South Africa Reserve Bank", sector: "finance", city: "Pretoria", lat: -25.7479, lon: 28.2293 },
 ];
 
 const malware = [
@@ -374,6 +395,81 @@ const softwareUsedByOrg = [
   { software: "Apache Kafka", org: "NovaTech Solutions" },
   { software: "Linux Kernel", org: "NovaTech Solutions" },
   { software: "Android", org: "NovaTech Solutions" },
+  // Maple Leaf Telecom (telecommunications)
+  { software: "Cisco IOS-XE", org: "Maple Leaf Telecom" },
+  { software: "FortiGate", org: "Maple Leaf Telecom" },
+  { software: "PAN-OS", org: "Maple Leaf Telecom" },
+  { software: "Linux Kernel", org: "Maple Leaf Telecom" },
+  // Deutsche Industriebank (finance)
+  { software: "BeyondTrust PRA", org: "Deutsche Industriebank" },
+  { software: "Oracle Database", org: "Deutsche Industriebank" },
+  { software: "Windows 11", org: "Deutsche Industriebank" },
+  { software: "MOVEit Transfer", org: "Deutsche Industriebank" },
+  // NHS Digital Trust (healthcare)
+  { software: "Exchange Server", org: "NHS Digital Trust" },
+  { software: "VMware ESXi", org: "NHS Digital Trust" },
+  { software: "SmarterMail", org: "NHS Digital Trust" },
+  { software: "Citrix NetScaler", org: "NHS Digital Trust" },
+  // EU Cyber Command (government)
+  { software: "Ivanti Connect Secure", org: "EU Cyber Command" },
+  { software: "Windows 11", org: "EU Cyber Command" },
+  { software: "Atlassian Confluence", org: "EU Cyber Command" },
+  { software: "FortiGate", org: "EU Cyber Command" },
+  // Nordic Energy AS (energy)
+  { software: "Cisco IOS-XE", org: "Nordic Energy AS" },
+  { software: "Dell RecoverPoint", org: "Nordic Energy AS" },
+  { software: "Linux Kernel", org: "Nordic Energy AS" },
+  { software: "Redis", org: "Nordic Energy AS" },
+  // Airbus Defence Systems (defense)
+  { software: "Windows 11", org: "Airbus Defence Systems" },
+  { software: "Exchange Server", org: "Airbus Defence Systems" },
+  { software: "GitLab", org: "Airbus Defence Systems" },
+  { software: "PAN-OS", org: "Airbus Defence Systems" },
+  // Tokyo Stock Exchange (finance)
+  { software: "Oracle Database", org: "Tokyo Stock Exchange" },
+  { software: "FortiGate", org: "Tokyo Stock Exchange" },
+  { software: "Linux Kernel", org: "Tokyo Stock Exchange" },
+  { software: "PostgreSQL", org: "Tokyo Stock Exchange" },
+  // Samsung Semiconductor (technology)
+  { software: "GitLab", org: "Samsung Semiconductor" },
+  { software: "Kubernetes", org: "Samsung Semiconductor" },
+  { software: "Jenkins", org: "Samsung Semiconductor" },
+  { software: "Log4j", org: "Samsung Semiconductor" },
+  // Tata Power Grid (energy)
+  { software: "Cisco IOS-XE", org: "Tata Power Grid" },
+  { software: "SonicWall SMA", org: "Tata Power Grid" },
+  { software: "Dell RecoverPoint", org: "Tata Power Grid" },
+  { software: "Apache Struts", org: "Tata Power Grid" },
+  // Singapore MAS (government)
+  { software: "Ivanti Connect Secure", org: "Singapore MAS" },
+  { software: "Windows 11", org: "Singapore MAS" },
+  { software: "MongoDB", org: "Singapore MAS" },
+  { software: "PAN-OS", org: "Singapore MAS" },
+  // Australia Defence Signals (defense)
+  { software: "Exchange Server", org: "Australia Defence Signals" },
+  { software: "Ivanti EPMM", org: "Australia Defence Signals" },
+  { software: "VMware ESXi", org: "Australia Defence Signals" },
+  { software: "Chrome", org: "Australia Defence Signals" },
+  // Saudi Aramco Digital (energy)
+  { software: "FortiGate", org: "Saudi Aramco Digital" },
+  { software: "Cisco IOS-XE", org: "Saudi Aramco Digital" },
+  { software: "VMware ESXi", org: "Saudi Aramco Digital" },
+  { software: "Windows 11", org: "Saudi Aramco Digital" },
+  // Emirates NBD (finance)
+  { software: "BeyondTrust PRA", org: "Emirates NBD" },
+  { software: "PAN-OS", org: "Emirates NBD" },
+  { software: "MOVEit Transfer", org: "Emirates NBD" },
+  { software: "Oracle Database", org: "Emirates NBD" },
+  // Petrobras CERT (energy)
+  { software: "Apache Struts", org: "Petrobras CERT" },
+  { software: "Linux Kernel", org: "Petrobras CERT" },
+  { software: "Docker", org: "Petrobras CERT" },
+  { software: "FortiGate", org: "Petrobras CERT" },
+  // South Africa Reserve Bank (finance)
+  { software: "Windows 11", org: "South Africa Reserve Bank" },
+  { software: "Exchange Server", org: "South Africa Reserve Bank" },
+  { software: "SonicWall SMA", org: "South Africa Reserve Bank" },
+  { software: "PostgreSQL", org: "South Africa Reserve Bank" },
 ];
 
 // Malware -> EXPLOITS -> Vulnerability
@@ -412,6 +508,25 @@ const campaignTargetsOrg = [
   { campaign: "Scattered Spider Cloud Hopping", org: "First National Bank" },
   { campaign: "Sandworm GridDown", org: "Federal Systems Agency" },
   { campaign: "Volt Typhoon Infrastructure", org: "NovaTech Solutions" },
+  // New global targets
+  { campaign: "Volt Typhoon Infrastructure", org: "Tata Power Grid" },
+  { campaign: "Volt Typhoon Infrastructure", org: "Saudi Aramco Digital" },
+  { campaign: "Volt Typhoon Infrastructure", org: "Nordic Energy AS" },
+  { campaign: "APT28 Election Interference 2026", org: "EU Cyber Command" },
+  { campaign: "APT28 Election Interference 2026", org: "NHS Digital Trust" },
+  { campaign: "APT28 Election Interference 2026", org: "Airbus Defence Systems" },
+  { campaign: "Lazarus Bybit Heist", org: "Tokyo Stock Exchange" },
+  { campaign: "Lazarus Bybit Heist", org: "Deutsche Industriebank" },
+  { campaign: "Lazarus Bybit Heist", org: "Emirates NBD" },
+  { campaign: "Scattered Spider Cloud Hopping", org: "Samsung Semiconductor" },
+  { campaign: "Scattered Spider Cloud Hopping", org: "Maple Leaf Telecom" },
+  { campaign: "Cl0p MOVEit 2.0", org: "Deutsche Industriebank" },
+  { campaign: "Cl0p MOVEit 2.0", org: "South Africa Reserve Bank" },
+  { campaign: "Sandworm GridDown", org: "Nordic Energy AS" },
+  { campaign: "Sandworm GridDown", org: "Tata Power Grid" },
+  { campaign: "Sandworm GridDown", org: "Saudi Aramco Digital" },
+  { campaign: "Rhysida Healthcare Blitz", org: "NHS Digital Trust" },
+  { campaign: "Rhysida Healthcare Blitz", org: "Petrobras CERT" },
 ];
 
 // Vulnerability -[RELATED_TO]-> Vulnerability (same-vendor or chained exploits)

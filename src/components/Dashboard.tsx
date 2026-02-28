@@ -92,6 +92,9 @@ function deriveArcs(nodes: GraphNode[], edges: GraphEdge[]): AttackArc[] {
     const t = typeof e.target === "string" ? e.target : (e.target as unknown as { id: string }).id;
     if (!adj.has(s)) adj.set(s, new Set());
     adj.get(s)!.add(t);
+    // Also traverse reverse direction to find more paths
+    if (!adj.has(t)) adj.set(t, new Set());
+    adj.get(t)!.add(s);
   }
 
   const arcs: AttackArc[] = [];
@@ -963,7 +966,11 @@ export default function Dashboard() {
         taskId={trajectoryTaskId}
       />
 
-      <CommandPalette />
+      <CommandPalette
+        onSwitchView={setActiveVisualizer}
+        onSwitchTab={setActiveTab}
+        onRefresh={handleRefresh}
+      />
     </div>
   );
 }

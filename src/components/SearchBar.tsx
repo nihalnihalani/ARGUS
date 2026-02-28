@@ -102,7 +102,7 @@ export default function SearchBar({
 
           case "text":
           default:
-            response = await fetch("/api/graph/query", {
+            response = await fetch(`/api/graph/query?q=${encodeURIComponent(searchQuery)}`, {
               method: "GET",
             });
             break;
@@ -114,6 +114,9 @@ export default function SearchBar({
 
         const data = await response.json();
 
+        const nodeCount = data.nodes?.length || 0;
+        const edgeCount = data.edges?.length || 0;
+
         const searchResult: SearchResult = {
           type: inputType,
           title: `Results for "${searchQuery}"`,
@@ -122,7 +125,9 @@ export default function SearchBar({
               ? "Vulnerability intelligence gathered"
               : inputType === "ip" || inputType === "domain"
               ? "Network investigation initiated"
-              : "Graph query executed",
+              : nodeCount > 0
+              ? `Found ${nodeCount} entities and ${edgeCount} relationships — added to live graph`
+              : "No matching entities found in the knowledge graph",
           nodes: data.nodes,
           edges: data.edges,
           taskId: data.investigation?.taskId ?? data.research?.taskId ?? data.taskId,
@@ -130,7 +135,8 @@ export default function SearchBar({
 
         setResults([searchResult]);
 
-        if (data.nodes && data.edges && onResults) {
+        // Always push discovered nodes/edges to the live graph
+        if (data.nodes?.length > 0 && data.edges && onResults) {
           onResults(data.nodes, data.edges);
         }
       } catch (err) {
