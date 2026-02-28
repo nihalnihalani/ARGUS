@@ -57,9 +57,7 @@ export async function createScout(
   return request<{ id: string; status: string }>("POST", "/v1/scouting/tasks", {
     query,
     ...(displayName ? { display_name: displayName } : {}),
-    ...(outputSchema
-      ? { task_spec: { output_schema: { json_schema: outputSchema } } }
-      : {}),
+    ...(outputSchema ? { output_schema: outputSchema } : {}),
     ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
     ...(options?.outputInterval != null
       ? { output_interval: options.outputInterval }
@@ -113,7 +111,7 @@ export async function pollScout(
   }>("GET", `/v1/scouting/tasks/${scoutId}/updates?${params.toString()}`);
 }
 
-export async function restartScout(scoutId: string, newQuery: string) {
+export async function editScout(scoutId: string, newQuery: string) {
   return request<{ id: string; status: string }>(
     "PUT",
     `/v1/scouting/tasks/${scoutId}`,
@@ -186,9 +184,7 @@ export async function createBrowsingTask(
     {
       start_url: startUrl,
       task,
-      ...(outputSchema
-        ? { task_spec: { output_schema: { json_schema: outputSchema } } }
-        : {}),
+      ...(outputSchema ? { output_schema: outputSchema } : {}),
     }
   );
 }
@@ -224,9 +220,7 @@ export async function createResearchTask(
     "/v1/research/tasks",
     {
       query,
-      ...(outputSchema
-        ? { task_spec: { output_schema: { json_schema: outputSchema } } }
-        : {}),
+      ...(outputSchema ? { output_schema: outputSchema } : {}),
     }
   );
 }

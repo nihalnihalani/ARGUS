@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { restartScout } from '@/lib/yutori';
+import { editScout } from '@/lib/yutori';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -13,8 +13,8 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const result = await restartScout(scoutId, newQuery);
-    return NextResponse.json({ success: true, message: 'Scout restarted', scout: result });
+    const result = await editScout(scoutId, newQuery);
+    return NextResponse.json({ success: true, message: 'Scout query updated', scout: result });
   } catch (error) {
     console.error('[scouts/restart]', error);
     return NextResponse.json(

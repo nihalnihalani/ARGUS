@@ -269,7 +269,7 @@ export default function AttackMapInner({ arcs }: AttackMapProps) {
 
       {/* Stats overlay */}
       {arcs.length > 0 && (
-        <div className="absolute top-3 right-3 pointer-events-none z-10 rounded-lg px-3 py-2"
+        <div className="absolute bottom-3 left-3 pointer-events-none z-10 rounded-lg px-3 py-2"
           style={{ background: 'rgba(10, 18, 32, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.04)' }}
         >
           <div className="text-[#ef4444] font-mono text-[11px] font-semibold">

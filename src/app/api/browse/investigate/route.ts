@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBrowsingTask, getBrowsingTask } from '@/lib/yutori';
 
+const investigationSchema = {
+  type: "object" as const,
+  properties: {
+    target: { type: "string" as const, description: "The domain, IP, or entity investigated" },
+    registrant: {
+      type: "object" as const,
+      properties: {
+        name: { type: "string" as const },
+        organization: { type: "string" as const },
+        email: { type: "string" as const },
+        country: { type: "string" as const },
+      },
+    },
+    dns_records: {
+      type: "array" as const,
+      items: {
+        type: "object" as const,
+        properties: {
+          type: { type: "string" as const, description: "A, AAAA, MX, NS, TXT, CNAME, etc." },
+          value: { type: "string" as const },
+        },
+        required: ["type", "value"] as const,
+      },
+    },
+    hosting: {
+      type: "object" as const,
+      properties: {
+        provider: { type: "string" as const },
+        ip_address: { type: "string" as const },
+        asn: { type: "string" as const },
+        location: { type: "string" as const },
+      },
+    },
+    security_flags: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description: "Signs of malicious infrastructure, phishing, or suspicious configuration",
+    },
+    raw_summary: { type: "string" as const, description: "Free-text summary of all findings" },
+  },
+  required: ["target", "raw_summary"] as const,
+};
+
 const INVESTIGATION_URLS: Record<string, (target: string) => string> = {
   whois: (target) => `https://who.is/whois/${encodeURIComponent(target)}`,
   dns: (target) => `https://who.is/dns/${encodeURIComponent(target)}`,
@@ -31,7 +74,7 @@ export async function POST(req: NextRequest) {
     const startUrl = urlBuilder(target);
     const task = `Investigate ${target} using ${type} lookup. Extract all registration details, DNS records, IP geolocation, hosting provider, and any relevant security information. Look for signs of malicious infrastructure.`;
 
-    const browsingTask = await createBrowsingTask(startUrl, task);
+    const browsingTask = await createBrowsingTask(startUrl, task, investigationSchema);
 
     return NextResponse.json({
       success: true,

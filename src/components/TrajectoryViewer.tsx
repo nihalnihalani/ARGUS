@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, ArrowDown, FileText, Loader2, Clock } from "lucide-react";
+import { Globe, ArrowDown, FileText, Loader2, Clock, Eye, ShieldAlert } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { TrajectoryStep } from "@/lib/types";
+import type { TrajectoryStep, VisualAnalysis } from "@/lib/types";
 
 interface TrajectoryViewerProps {
   open: boolean;
@@ -27,6 +27,28 @@ export default function TrajectoryViewer({
   const [steps, setSteps] = useState<TrajectoryStep[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rekaAnalyses, setRekaAnalyses] = useState<Record<number, VisualAnalysis>>({});
+  const [analyzingStep, setAnalyzingStep] = useState<number | null>(null);
+
+  const analyzeWithReka = async (stepIndex: number, screenshotUrl: string) => {
+    setAnalyzingStep(stepIndex);
+    try {
+      const res = await fetch("/api/reka/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: screenshotUrl }),
+      });
+      if (!res.ok) throw new Error("Analysis failed");
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        setRekaAnalyses((prev) => ({ ...prev, [stepIndex]: data.analysis }));
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setAnalyzingStep(null);
+    }
+  };
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -167,6 +189,76 @@ export default function TrajectoryViewer({
                           <p className="text-[10px] text-[#64748b] font-mono whitespace-pre-wrap">
                             {step.data_extracted}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Reka Vision Analysis */}
+                      {step.screenshot_url && !rekaAnalyses[i] && (
+                        <button
+                          onClick={() => analyzeWithReka(i, step.screenshot_url!)}
+                          disabled={analyzingStep === i}
+                          className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-1 rounded-md transition-colors"
+                          style={{
+                            background: "rgba(197, 108, 240, 0.08)",
+                            border: "1px solid rgba(197, 108, 240, 0.2)",
+                            color: "#c56cf0",
+                          }}
+                        >
+                          {analyzingStep === i ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Eye className="h-3 w-3" />
+                          )}
+                          {analyzingStep === i ? "Analyzing..." : "Analyze with Reka"}
+                        </button>
+                      )}
+
+                      {rekaAnalyses[i] && (
+                        <div
+                          className="rounded-md p-2 space-y-1.5"
+                          style={{
+                            background: "rgba(197, 108, 240, 0.03)",
+                            border: "1px solid rgba(197, 108, 240, 0.1)",
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Eye className="h-3 w-3 text-[#c56cf0]" />
+                            <span className="text-[9px] text-[#c56cf0] uppercase tracking-[0.1em] font-semibold">
+                              Reka Vision
+                            </span>
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background:
+                                  rekaAnalyses[i].riskLevel === "critical" ? "rgba(255, 59, 59, 0.15)" :
+                                  rekaAnalyses[i].riskLevel === "high" ? "rgba(255, 165, 2, 0.15)" :
+                                  rekaAnalyses[i].riskLevel === "medium" ? "rgba(255, 215, 0, 0.15)" :
+                                  "rgba(46, 213, 115, 0.15)",
+                                color:
+                                  rekaAnalyses[i].riskLevel === "critical" ? "#ff3b3b" :
+                                  rekaAnalyses[i].riskLevel === "high" ? "#ffa502" :
+                                  rekaAnalyses[i].riskLevel === "medium" ? "#ffd700" :
+                                  "#2ed573",
+                              }}
+                            >
+                              {rekaAnalyses[i].riskLevel.toUpperCase()}
+                            </span>
+                            {rekaAnalyses[i].isPhishing && (
+                              <span className="flex items-center gap-0.5 text-[9px] text-[#ff3b3b] font-bold">
+                                <ShieldAlert className="h-3 w-3" /> PHISHING
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#64748b]">{rekaAnalyses[i].summary}</p>
+                          {rekaAnalyses[i].indicators.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {rekaAnalyses[i].indicators.slice(0, 4).map((ind, j) => (
+                                <span key={j} className="text-[9px] text-[#94a3b8] px-1.5 py-0.5 rounded" style={{ background: "rgba(255, 255, 255, 0.04)" }}>
+                                  {ind}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 

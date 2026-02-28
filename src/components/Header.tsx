@@ -8,7 +8,8 @@ import {
   Settings,
   Bell,
   Network,
-  Globe2
+  Globe2,
+  Box
 } from "lucide-react";
 import { ArgusLogo } from "@/components/ui/argus-logo";
 import { ExpandableTabs } from "@/components/ui/expandable-tabs";
@@ -29,8 +30,8 @@ interface HeaderProps {
   isRefreshing?: boolean;
   isDemoMode?: boolean;
   onToggleDemo?: () => void;
-  activeVisualizer: 'graph' | 'map';
-  onVisualizerChange: (visualizer: 'graph' | 'map') => void;
+  activeVisualizer: 'graph' | 'graph3d' | 'map';
+  onVisualizerChange: (visualizer: 'graph' | 'graph3d' | 'map') => void;
 }
 
 export default function Header({
@@ -44,27 +45,29 @@ export default function Header({
   onVisualizerChange,
 }: HeaderProps) {
   // Determine the selected index based on activeVisualizer.
-  // The tabs array structure: [Dashboard, Alerts, Sep, Graph, Map, Sep, Demo, Refresh, Settings, Bell]
-  // Graph is index 3, Map is index 4.
-  const visualizerIndex = activeVisualizer === 'graph' ? 3 : 4;
+  // The tabs array structure: [Dashboard, Alerts, Sep, Network(2D), 3D, Map, Sep, Demo, Refresh, Settings, Bell]
+  // Network is index 3, 3D is index 4, Map is index 5.
+  const visualizerIndex = activeVisualizer === 'graph' ? 3 : activeVisualizer === 'graph3d' ? 4 : 5;
 
   const handleTabChange = (index: number | null) => {
     if (index === null) return;
-    
+
     switch (index) {
-      case 3: // Threat Graph
+      case 3: // 2D Network
         onVisualizerChange('graph');
         break;
-      case 4: // Global Map
+      case 4: // 3D Graph
+        onVisualizerChange('graph3d');
+        break;
+      case 5: // Global Map
         onVisualizerChange('map');
         break;
-      case 6: // Demo Mode
+      case 7: // Demo Mode
         if (onToggleDemo) onToggleDemo();
         break;
-      case 7: // Refresh
+      case 8: // Refresh
         if (onRefresh && !isRefreshing) onRefresh();
         break;
-      // You can add cases for Settings(8), Bell(9), Dashboard(0), Alerts(1) here later
     }
   };
 
@@ -119,6 +122,7 @@ export default function Header({
             { title: "Alerts", icon: ShieldAlert },
             { type: "separator" },
             { title: "Network", icon: Network },
+            { title: "3D", icon: Box },
             { title: "Global Map", icon: Globe2 },
             { type: "separator" },
             { title: isDemoMode ? "Live Data" : "Demo Mode", icon: Zap },

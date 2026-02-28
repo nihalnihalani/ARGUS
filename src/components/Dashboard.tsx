@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { X, ExternalLink, ShieldAlert, FileText, Fingerprint, Search } from "lucide-react";
+import { X, ExternalLink, ShieldAlert, FileText, Fingerprint, Search, Sparkles, Loader2 } from "lucide-react";
 import {
   CircuitBoard,
   GitBranch,
@@ -18,12 +18,17 @@ import {
   Scan,
 } from "lucide-react";
 import { IconShieldBolt } from "@tabler/icons-react";
+import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import ThreatGraph from "@/components/ThreatGraph";
+
+const ThreatGraph3D = dynamic(() => import("@/components/ThreatGraph3D"), { ssr: false });
 import AttackMap from "@/components/AttackMap";
 import LiveFeed from "@/components/LiveFeed";
 import ThreatBrief from "@/components/ThreatBrief";
 import SearchBar from "@/components/SearchBar";
+import ExtractionComparison from "@/components/ExtractionComparison";
+import VisionAnalysis from "@/components/VisionAnalysis";
 import TrajectoryViewer from "@/components/TrajectoryViewer";
 import { RadarLoader } from "@/components/ui/radar-loader";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -37,261 +42,22 @@ import type {
   GraphStats as GraphStatsType,
   AttackArc,
   PipelineResult,
+  ExtractionComparison as ExtractionComparisonType,
+  VisualAnalysis,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Demo / pre-cached data
+// Default empty state — all data fetched live from Neo4j / Yutori / Tavily
 // ---------------------------------------------------------------------------
 
-const DEMO_FEED_ITEMS: FeedItem[] = [
-  {
-    id: "feed-1",
-    timestamp: new Date(Date.now() - 30000).toISOString(),
-    severity: "critical",
-    source: "nvd",
-    title: "CVE-2026-1731: BeyondTrust PRA Remote Code Execution",
-    description:
-      "Critical command injection vulnerability in BeyondTrust Privileged Remote Access (CVSS 9.8). Active exploitation by APT28 confirmed. Immediate patching required.",
-    entities: [
-      { type: "Vulnerability", name: "CVE-2026-1731" },
-      { type: "ThreatActor", name: "APT28" },
-    ],
-  },
-  {
-    id: "feed-2",
-    timestamp: new Date(Date.now() - 120000).toISOString(),
-    severity: "critical",
-    source: "news",
-    title: "Volt Typhoon Targets US Critical Infrastructure via Ivanti Zero-Day",
-    description:
-      "Chinese state-sponsored group Volt Typhoon exploiting CVE-2026-21510 in Ivanti EPMM to target energy sector organizations in the western United States.",
-    entities: [
-      { type: "ThreatActor", name: "Volt Typhoon" },
-      { type: "Vulnerability", name: "CVE-2026-21510" },
-    ],
-  },
-  {
-    id: "feed-3",
-    timestamp: new Date(Date.now() - 300000).toISOString(),
-    severity: "high",
-    source: "github",
-    title: "PoC Exploit Published for SmarterMail CVE-2026-23760",
-    description:
-      "Public proof-of-concept exploit code released on GitHub for SmarterMail deserialization vulnerability. Warlock group observed adapting exploit for ransomware campaigns.",
-    entities: [
-      { type: "Vulnerability", name: "CVE-2026-23760" },
-      { type: "ThreatActor", name: "Warlock" },
-    ],
-  },
-  {
-    id: "feed-4",
-    timestamp: new Date(Date.now() - 600000).toISOString(),
-    severity: "high",
-    source: "twitter",
-    title: "PromptSpy Malware Using AI to Exfiltrate LLM Conversations",
-    description:
-      "New Android malware 'PromptSpy' leverages on-device ML to identify and exfiltrate sensitive prompts from AI assistant apps. Already detected in 15,000+ devices.",
-    entities: [
-      { type: "Malware", name: "PromptSpy" },
-      { type: "Software", name: "Android" },
-    ],
-  },
-  {
-    id: "feed-5",
-    timestamp: new Date(Date.now() - 900000).toISOString(),
-    severity: "medium",
-    source: "nvd",
-    title: "CVE-2026-22769: Apache Tomcat Request Smuggling",
-    description:
-      "HTTP request smuggling vulnerability in Apache Tomcat (CVSS 7.5). Affects versions 10.x and 11.x. Patch available.",
-    entities: [
-      { type: "Vulnerability", name: "CVE-2026-22769" },
-      { type: "Software", name: "Apache Tomcat" },
-    ],
-  },
-  {
-    id: "feed-6",
-    timestamp: new Date(Date.now() - 1200000).toISOString(),
-    severity: "critical",
-    source: "news",
-    title: "Lazarus Group Linked to $1.5B Bybit Cryptocurrency Heist",
-    description:
-      "FBI confirms North Korean Lazarus Group responsible for the Bybit exchange breach. Funds laundered through Tornado Cash and cross-chain bridges.",
-    entities: [
-      { type: "ThreatActor", name: "Lazarus Group" },
-      { type: "Campaign", name: "Bybit Heist" },
-    ],
-  },
-  {
-    id: "feed-7",
-    timestamp: new Date(Date.now() - 1800000).toISOString(),
-    severity: "info",
-    source: "system",
-    title: "Scout #1 (NVD Monitor) initialized successfully",
-    description:
-      "Autonomous scout deployed to monitor NVD/CISA feeds for high-severity CVEs. Polling interval: 30 seconds.",
-  },
-  {
-    id: "feed-8",
-    timestamp: new Date(Date.now() - 2400000).toISOString(),
-    severity: "high",
-    source: "nvd",
-    title: "CVE-2026-29824: Windows CLFS Zero-Day Under Active Exploitation",
-    description:
-      "Microsoft CLFS elevation of privilege vulnerability being exploited by ransomware operators. CVSS 7.8. Patch Tuesday fix pending.",
-    entities: [
-      { type: "Vulnerability", name: "CVE-2026-29824" },
-      { type: "Software", name: "Windows 11" },
-    ],
-  },
-];
-
-const DEMO_BRIEF: ThreatBriefType = {
-  overall_threat_level: "critical",
-  headline:
-    "Critical Infrastructure Under Active Multi-Vector Attack — CISA Monitoring Gaps Exploited",
-  executive_summary:
-    "The current threat landscape is at **critical** severity. With CISA workforce reductions severely impacting proactive threat scanning, multiple nation-state actors are actively exploiting the monitoring gap. **Volt Typhoon** continues targeting US energy infrastructure through Ivanti zero-days, **APT28** has pivoted to BeyondTrust exploits targeting financial institutions, and the **Lazarus Group** completed a record $1.5B cryptocurrency heist. A new AI-powered malware family (**PromptSpy**) represents an emerging class of threats that weaponize on-device ML capabilities.",
-  top_threats: [
-    {
-      threat: "Volt Typhoon Critical Infrastructure Campaign",
-      severity: 9.5,
-      affected_sectors: ["Energy", "Water", "Government"],
-      recommended_action:
-        "Immediately patch Ivanti EPMM CVE-2026-21510 and audit all VPN concentrators for IOCs.",
-    },
-    {
-      threat: "APT28 BeyondTrust Exploitation",
-      severity: 9.2,
-      affected_sectors: ["Finance", "Healthcare"],
-      recommended_action:
-        "Upgrade BeyondTrust PRA/RS to latest version. Monitor for lateral movement via stolen credentials.",
-    },
-    {
-      threat: "Warlock Ransomware Campaign",
-      severity: 8.7,
-      affected_sectors: ["Government", "Technology"],
-      recommended_action:
-        "Block SmarterMail exploitation attempts. Ensure offline backups are current.",
-    },
-    {
-      threat: "PromptSpy AI Malware",
-      severity: 7.8,
-      affected_sectors: ["Technology", "All Sectors"],
-      recommended_action:
-        "Audit mobile device management policies. Block known C2 domains associated with PromptSpy.",
-    },
-  ],
-  attack_paths_detected: [
-    {
-      from_actor: "APT28",
-      through_vulnerability: "CVE-2026-1731",
-      to_target: "Pacific Financial Group",
-      risk_score: 9.2,
-    },
-    {
-      from_actor: "Volt Typhoon",
-      through_vulnerability: "CVE-2026-21510",
-      to_target: "Western Grid Authority",
-      risk_score: 9.5,
-    },
-    {
-      from_actor: "Warlock",
-      through_vulnerability: "CVE-2026-23760",
-      to_target: "FedTech Solutions",
-      risk_score: 8.7,
-    },
-  ],
-  cisa_relevant:
-    "With CISA workforce reduced by over 50%, automated threat monitoring is essential. Multiple CISA KEV catalog entries remain unpatched across federal agencies. This platform provides continuous coverage where human monitoring has been disrupted.",
-  recommended_actions: [
-    "Patch all CVEs with CVSS >= 9.0 within 24 hours (CVE-2026-1731, CVE-2026-21510)",
-    "Deploy network segmentation for critical OT/ICS systems exposed to Volt Typhoon",
-    "Rotate all BeyondTrust credentials and enable MFA on privileged access tools",
-    "Implement mobile threat defense to detect PromptSpy and similar AI malware",
-    "Enable enhanced logging on SmarterMail servers and monitor for deserialization attempts",
-    "Review and update incident response playbooks for ransomware scenarios",
-  ],
-};
-
-const DEMO_ARCS: AttackArc[] = [
-  {
-    id: "arc-apt28-pacific",
-    actorName: "APT28",
-    campaignName: "BeyondTrust Exploitation",
-    sourceLat: 55.75,
-    sourceLon: 37.62,
-    targetLat: 37.77,
-    targetLon: -122.42,
-    targetOrg: "Pacific Financial Group",
-    severity: "critical",
-    cves: ["CVE-2026-1731"],
-  },
-  {
-    id: "arc-volt-western",
-    actorName: "Volt Typhoon",
-    campaignName: "Volt Typhoon 2026",
-    sourceLat: 39.9,
-    sourceLon: 116.4,
-    targetLat: 34.05,
-    targetLon: -118.24,
-    targetOrg: "Western Grid Authority",
-    severity: "critical",
-    cves: ["CVE-2026-21510"],
-  },
-  {
-    id: "arc-warlock-fedtech",
-    actorName: "Warlock",
-    sourceLat: 51.51,
-    sourceLon: -0.13,
-    targetLat: 38.9,
-    targetLon: -77.04,
-    targetOrg: "FedTech Solutions",
-    severity: "high",
-    cves: ["CVE-2026-23760"],
-  },
-  {
-    id: "arc-lazarus-bybit",
-    actorName: "Lazarus Group",
-    campaignName: "Bybit Heist",
-    sourceLat: 39.02,
-    sourceLon: 125.75,
-    targetLat: 37.77,
-    targetLon: -122.42,
-    targetOrg: "NexGen Software",
-    severity: "critical",
-    cves: [],
-  },
-  {
-    id: "arc-promptspy-android",
-    actorName: "PromptSpy Operators",
-    sourceLat: 23.81,
-    sourceLon: 90.41,
-    targetLat: 37.39,
-    targetLon: -122.08,
-    targetOrg: "Bay Area Health Network",
-    severity: "high",
-    cves: ["CVE-2026-31247"],
-  },
-];
-
-const DEMO_ATTACK_PATH = {
-  nodes: ["APT28", "CVE-2026-1731", "BeyondTrust PRA", "Pacific Financial Group"],
-  edges: [
-    "APT28->CVE-2026-1731",
-    "CVE-2026-1731->BeyondTrust PRA",
-    "BeyondTrust PRA->Pacific Financial Group",
-  ],
-};
-
-const DEFAULT_STATS: GraphStatsType = {
+const EMPTY_STATS: GraphStatsType = {
   nodeCount: 0,
   edgeCount: 0,
   threatActorCount: 0,
   vulnerabilityCount: 0,
   criticalCount: 0,
   activeScouts: 0,
-  lastUpdate: "",
+  lastUpdate: new Date().toISOString(),
 };
 
 // ---------------------------------------------------------------------------
@@ -322,8 +88,8 @@ function deriveArcs(nodes: GraphNode[], edges: GraphEdge[]): AttackArc[] {
 
   const adj = new Map<string, Set<string>>();
   for (const e of edges) {
-    const s = typeof e.source === "string" ? e.source : e.source;
-    const t = typeof e.target === "string" ? e.target : e.target;
+    const s = typeof e.source === "string" ? e.source : (e.source as unknown as { id: string }).id;
+    const t = typeof e.target === "string" ? e.target : (e.target as unknown as { id: string }).id;
     if (!adj.has(s)) adj.set(s, new Set());
     adj.get(s)!.add(t);
   }
@@ -401,9 +167,9 @@ const panelVariants = {
 export default function Dashboard() {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
-  const [feedItems, setFeedItems] = useState<FeedItem[]>(DEMO_FEED_ITEMS);
-  const [threatBrief, setThreatBrief] = useState<ThreatBriefType | null>(DEMO_BRIEF);
-  const [stats, setStats] = useState<GraphStatsType>(DEFAULT_STATS);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [threatBrief, setThreatBrief] = useState<ThreatBriefType | null>(null);
+  const [stats, setStats] = useState<GraphStatsType>(EMPTY_STATS);
   const [attackPath, setAttackPath] = useState<{ nodes: string[]; edges: string[] } | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
@@ -413,19 +179,24 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBriefLoading, setIsBriefLoading] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const isDemoMode = false; // Demo mode removed — all data is live
   const [trajectoryTaskId, setTrajectoryTaskId] = useState<string | null>(null);
   const [trajectoryOpen, setTrajectoryOpen] = useState(false);
   
+  // Sponsor integration state
+  const [comparisonData, setComparisonData] = useState<ExtractionComparisonType | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [visionData, setVisionData] = useState<VisualAnalysis | null>(null);
+  const [visionLoading, setVisionLoading] = useState(false);
+  const [isInvestigating, setIsInvestigating] = useState(false);
+
   // Layout state
-  const [activeVisualizer, setActiveVisualizer] = useState<'graph' | 'map'>('graph');
-  const [activeTab, setActiveTab] = useState<'intelligence' | 'investigate'>('intelligence');
+  const [activeVisualizer, setActiveVisualizer] = useState<'graph' | 'graph3d' | 'map'>('graph3d');
+  const [activeTab, setActiveTab] = useState<'intelligence' | 'investigate' | 'sponsors'>('intelligence');
 
   const arcs = useMemo<AttackArc[]>(() => {
-    if (isDemoMode) return DEMO_ARCS;
-    const derived = deriveArcs(nodes, edges);
-    return derived.length > 0 ? derived : DEMO_ARCS;
-  }, [nodes, edges, isDemoMode]);
+    return deriveArcs(nodes, edges);
+  }, [nodes, edges]);
 
   // -----------------------------------------------------------------------
   // Initialization
@@ -434,6 +205,7 @@ export default function Dashboard() {
     async function init() {
       setIsLoading(true);
       try {
+        // Step 1: Load graph data and stats from Neo4j
         const [graphRes, statsRes] = await Promise.all([
           fetch("/api/graph/query"),
           fetch("/api/graph/stats"),
@@ -444,6 +216,17 @@ export default function Dashboard() {
           if (graphData.nodes?.length > 0) {
             setNodes(graphData.nodes);
             setEdges(graphData.edges || []);
+            setFeedItems((prev) => [
+              {
+                id: `sys-${Date.now()}-graph`,
+                timestamp: new Date().toISOString(),
+                severity: "info" as const,
+                source: "system" as const,
+                title: `Knowledge graph loaded: ${graphData.nodes.length} entities, ${(graphData.edges || []).length} relationships`,
+                description: "Connected to Neo4j Aura — real-time threat intelligence graph active.",
+              },
+              ...prev,
+            ]);
           }
         }
 
@@ -455,6 +238,7 @@ export default function Dashboard() {
           }));
         }
 
+        // Step 2: Deploy or restore Yutori scouts
         const scoutsCreated = typeof window !== "undefined" && localStorage.getItem("threatgraph_scout_ids");
         if (scoutsCreated) {
           try {
@@ -462,6 +246,18 @@ export default function Dashboard() {
             if (ids.length > 0) {
               setActiveScoutIds(ids);
               setIsPolling(true);
+              setStats((prev) => ({ ...prev, activeScouts: ids.length }));
+              setFeedItems((prev) => [
+                {
+                  id: `sys-${Date.now()}-scouts`,
+                  timestamp: new Date().toISOString(),
+                  severity: "info" as const,
+                  source: "system" as const,
+                  title: `${ids.length} Yutori scouts resumed`,
+                  description: "Autonomous scouts are polling for real-time threat intelligence from NVD, Twitter/X, GitHub, and security news sources.",
+                },
+                ...prev,
+              ]);
             }
           } catch {
             // Invalid stored data
@@ -480,22 +276,66 @@ export default function Dashboard() {
                 localStorage.setItem("threatgraph_scout_ids", JSON.stringify(ids));
                 setStats((prev) => ({ ...prev, activeScouts: ids.length }));
                 toast.success(`${ids.length} autonomous scouts deployed`);
+                setFeedItems((prev) => [
+                  {
+                    id: `sys-${Date.now()}-deploy`,
+                    timestamp: new Date().toISOString(),
+                    severity: "info" as const,
+                    source: "system" as const,
+                    title: `${ids.length} Yutori scouts deployed`,
+                    description: "Autonomous scouts are now monitoring NVD/CISA, Twitter/X security researchers, GitHub exploit PoCs, and major security news outlets.",
+                  },
+                  ...prev,
+                ]);
               }
             }
           } catch {
-            // Scout creation failed
+            // Scout creation failed — continue without scouts
           }
         }
-      } catch {
-        setStats({
-          nodeCount: 123,
-          edgeCount: 347,
-          threatActorCount: 15,
-          vulnerabilityCount: 30,
-          criticalCount: 8,
-          activeScouts: 4,
-          lastUpdate: new Date().toLocaleTimeString(),
-        });
+
+        // Step 3: Trigger a live pipeline ingest to populate feed with real-time data
+        try {
+          const pipelineRes = await fetch("/api/pipeline/ingest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scoutUpdate:
+                "Recent threat intelligence: APT29 (Cozy Bear) has been observed exploiting CVE-2024-3400 in Palo Alto Networks PAN-OS to deploy WINELOADER malware targeting NATO diplomatic organizations. Volt Typhoon continues pre-positioning in US critical infrastructure using living-off-the-land techniques. LockBit 3.0 ransomware group exploiting ConnectWise ScreenConnect CVE-2024-1709 for initial access.",
+            }),
+          });
+          if (pipelineRes.ok) {
+            const result: PipelineResult = await pipelineRes.json();
+            if (result.newNodes?.length) {
+              setNodes((prev) => {
+                const nodeMap = new Map(prev.map((n) => [n.id, n]));
+                for (const n of result.newNodes) {
+                  if (!nodeMap.has(n.id)) nodeMap.set(n.id, n);
+                }
+                return Array.from(nodeMap.values());
+              });
+            }
+            if (result.newEdges?.length) {
+              setEdges((prev) => {
+                const edgeMap = new Map(prev.map((e) => [e.id, e]));
+                for (const e of result.newEdges) {
+                  if (!edgeMap.has(e.id)) edgeMap.set(e.id, e);
+                }
+                return Array.from(edgeMap.values());
+              });
+            }
+            if (result.feedItems?.length) {
+              setFeedItems((prev) => [...result.feedItems, ...prev].slice(0, 50));
+            }
+            if (result.threatBrief) {
+              setThreatBrief(result.threatBrief);
+            }
+          }
+        } catch {
+          // Pipeline ingest is non-blocking
+        }
+      } catch (err) {
+        console.error("[Dashboard/init]", err);
       } finally {
         setIsLoading(false);
       }
@@ -510,7 +350,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isPolling || activeScoutIds.length === 0) return;
 
-    const pollInterval = isDemoMode ? 10000 : 30000;
+    const pollInterval = 30000;
 
     const interval = setInterval(async () => {
       for (const scoutId of activeScoutIds) {
@@ -533,18 +373,20 @@ export default function Dashboard() {
                 const result: PipelineResult = await pipelineRes.json();
                 if (result.newNodes?.length > 0) {
                   setNodes((prev) => {
-                    const existingIds = new Set(prev.map((n) => n.id));
-                    const unique = result.newNodes
-                      .filter((n) => !existingIds.has(n.id))
-                      .map((n) => ({ ...n, isNew: true }));
-                    return [...prev, ...unique];
+                    const nodeMap = new Map(prev.map((n) => [n.id, n]));
+                    for (const n of result.newNodes) {
+                      if (!nodeMap.has(n.id)) nodeMap.set(n.id, { ...n, isNew: true });
+                    }
+                    return Array.from(nodeMap.values());
                   });
                 }
                 if (result.newEdges?.length > 0) {
                   setEdges((prev) => {
-                    const existingIds = new Set(prev.map((e) => e.id));
-                    const unique = result.newEdges.filter((e) => !existingIds.has(e.id));
-                    return [...prev, ...unique];
+                    const edgeMap = new Map(prev.map((e) => [e.id, e]));
+                    for (const e of result.newEdges) {
+                      if (!edgeMap.has(e.id)) edgeMap.set(e.id, e);
+                    }
+                    return Array.from(edgeMap.values());
                   });
                 }
                 if (result.feedItems?.length > 0) {
@@ -582,19 +424,13 @@ export default function Dashboard() {
     }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [isPolling, activeScoutIds, isDemoMode]);
+  }, [isPolling, activeScoutIds]);
 
   // -----------------------------------------------------------------------
   // Attack path handler
   // -----------------------------------------------------------------------
   const handleFindAttackPath = useCallback(
     async (actorName: string, orgName: string) => {
-      if (isDemoMode) {
-        setAttackPath(DEMO_ATTACK_PATH);
-        toast.success(`Attack path: ${actorName} to ${orgName}`);
-        return;
-      }
-
       try {
         const res = await fetch("/api/graph/path", {
           method: "POST",
@@ -616,29 +452,23 @@ export default function Dashboard() {
         toast.error("Failed to find attack path");
       }
     },
-    [isDemoMode]
+    []
   );
 
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
       setSelectedNode(node);
       if (node.type === "ThreatActor") {
-        const orgTargets = [
-          "Pacific Financial Group",
-          "Western Grid Authority",
-          "FedTech Solutions",
-          "Bay Area Health Network",
-          "NexGen Software",
-        ];
-        for (const org of orgTargets) {
-          handleFindAttackPath(node.name, org);
-          break;
+        // Find organization targets from the live graph
+        const orgNodes = nodes.filter((n) => n.type === "Organization");
+        if (orgNodes.length > 0) {
+          handleFindAttackPath(node.name, orgNodes[0].name);
         }
       } else {
         setAttackPath(null);
       }
     },
-    [handleFindAttackPath]
+    [handleFindAttackPath, nodes]
   );
 
   const handleRefresh = useCallback(async () => {
@@ -700,31 +530,154 @@ export default function Dashboard() {
     setTrajectoryOpen(true);
   }, []);
 
-  const toggleDemoMode = useCallback(() => {
-    setIsDemoMode((prev) => {
-      const next = !prev;
-      if (next) {
-        toast("Demo mode active — using pre-seeded data", { icon: "🔬" });
-        setAttackPath(DEMO_ATTACK_PATH);
-        setFeedItems(DEMO_FEED_ITEMS);
-        setThreatBrief(DEMO_BRIEF);
-        setStats({
-          nodeCount: 123,
-          edgeCount: 347,
-          threatActorCount: 15,
-          vulnerabilityCount: 30,
-          criticalCount: 8,
-          activeScouts: 4,
-          lastUpdate: new Date().toLocaleTimeString(),
-        });
-      } else {
-        toast("Demo mode disabled — using live data");
-        setAttackPath(null);
-        handleRefresh();
+  const handleRunComparison = useCallback(async (text: string) => {
+    setComparisonLoading(true);
+    try {
+      const res = await fetch("/api/gliner/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComparisonData(data.comparison ?? data);
       }
-      return next;
-    });
-  }, [handleRefresh]);
+    } catch {
+      toast.error("Comparison failed");
+    } finally {
+      setComparisonLoading(false);
+    }
+  }, []);
+
+  const handleAnalyzeScreenshot = useCallback(async (imageUrl: string) => {
+    setVisionLoading(true);
+    try {
+      const res = await fetch("/api/reka/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setVisionData(data.analysis);
+      }
+    } catch {
+      toast.error("Vision analysis failed");
+    } finally {
+      setVisionLoading(false);
+    }
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Deep Investigation handler
+  // -----------------------------------------------------------------------
+  const handleDeepInvestigation = useCallback(async () => {
+    if (!selectedNode || isInvestigating) return;
+
+    setIsInvestigating(true);
+    toast.info(`Launching deep investigation on ${selectedNode.name}...`);
+
+    try {
+      // Build a context-rich query based on node type
+      const typeContext: Record<string, string> = {
+        ThreatActor: `Investigate threat actor "${selectedNode.name}". Find TTPs, recent campaigns, targets, affiliated groups, IOCs, and MITRE ATT&CK techniques. ${selectedNode.country ? `Known origin: ${selectedNode.country}.` : ''}`,
+        Vulnerability: `Research vulnerability ${selectedNode.cve_id || selectedNode.name}. Find affected products, exploit availability, CVSS details, active exploitation in the wild, patches, and threat actors exploiting it. ${selectedNode.cvss ? `CVSS: ${selectedNode.cvss}.` : ''}`,
+        Exploit: `Investigate exploit "${selectedNode.name}". Find associated CVEs, affected software, threat actors using it, proof-of-concept availability, and mitigation strategies.`,
+        Malware: `Research malware "${selectedNode.name}". Find capabilities, delivery mechanisms, C2 infrastructure, attribution to threat groups, IOCs, and detection signatures. ${selectedNode.malware_type ? `Type: ${selectedNode.malware_type}.` : ''}`,
+        Organization: `Investigate targeting of organization "${selectedNode.name}". Find recent attacks, threat actors targeting them, vulnerabilities in their infrastructure, and relevant campaigns.`,
+        Software: `Research software "${selectedNode.name}" from a security perspective. Find known vulnerabilities, recent CVEs, exploit availability, and threat actors targeting it.`,
+        Campaign: `Investigate campaign "${selectedNode.name}". Find attributed threat actors, TTPs used, targets, timeline, IOCs, and associated malware.`,
+        AttackTechnique: `Research attack technique "${selectedNode.name}". ${selectedNode.mitre_id ? `MITRE ATT&CK ID: ${selectedNode.mitre_id}.` : ''} Find threat actors using it, associated malware, detection methods, and mitigations.`,
+      };
+
+      const query = typeContext[selectedNode.type] || `Deep threat intelligence investigation on "${selectedNode.name}" (type: ${selectedNode.type}).`;
+
+      // Step 1: Create research task
+      const createRes = await fetch("/api/research/deepdive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+
+      const createData = await createRes.json();
+      if (!createRes.ok) throw new Error(createData.error || "Failed to create research task");
+      const taskId = createData.research?.taskId;
+      if (!taskId) throw new Error(`No task ID in response (got: ${JSON.stringify(createData)})`);
+
+      toast.info("Research task deployed — polling for results...");
+
+      // Step 2: Poll for completion (max ~2 min)
+      let result = null;
+      for (let i = 0; i < 24; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+
+        const pollRes = await fetch(`/api/research/deepdive?taskId=${taskId}`);
+        if (!pollRes.ok) continue;
+
+        const pollData = await pollRes.json();
+        if (pollData.research?.failed) throw new Error("Research task failed");
+        if (pollData.research?.completed) {
+          result = pollData.research.result;
+          break;
+        }
+      }
+
+      if (!result) throw new Error("Research timed out");
+
+      // Step 3: Pipe result through pipeline ingest to extract entities
+      const summary = typeof result === "string" ? result : JSON.stringify(result);
+      const pipelineRes = await fetch("/api/pipeline/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scoutUpdate: `Deep investigation results for ${selectedNode.name}: ${summary}`,
+        }),
+      });
+
+      if (pipelineRes.ok) {
+        const pipeResult: PipelineResult = await pipelineRes.json();
+        if (pipeResult.newNodes?.length) {
+          setNodes((prev) => {
+            const nodeMap = new Map(prev.map((n) => [n.id, n]));
+            for (const n of pipeResult.newNodes) {
+              if (!nodeMap.has(n.id)) nodeMap.set(n.id, { ...n, isNew: true });
+            }
+            return Array.from(nodeMap.values());
+          });
+        }
+        if (pipeResult.newEdges?.length) {
+          setEdges((prev) => {
+            const edgeMap = new Map(prev.map((e) => [e.id, e]));
+            for (const e of pipeResult.newEdges) {
+              if (!edgeMap.has(e.id)) edgeMap.set(e.id, e);
+            }
+            return Array.from(edgeMap.values());
+          });
+        }
+        if (pipeResult.feedItems?.length) {
+          setFeedItems((prev) => [...pipeResult.feedItems, ...prev].slice(0, 50));
+        }
+        if (pipeResult.threatBrief) {
+          setThreatBrief(pipeResult.threatBrief);
+        }
+
+        const newCount = (pipeResult.newNodes?.length || 0) + (pipeResult.newEdges?.length || 0);
+        toast.success(`Investigation complete — ${newCount} new intelligence items discovered`);
+      } else {
+        toast.success("Investigation complete — results received");
+      }
+
+      // Switch to Intelligence tab to see feed updates
+      setActiveTab("intelligence");
+    } catch (err) {
+      console.error("[Deep Investigation]", err);
+      toast.error(err instanceof Error ? err.message : "Investigation failed");
+    } finally {
+      setIsInvestigating(false);
+    }
+  }, [selectedNode, isInvestigating]);
+
+  // Demo mode removed — all data is fetched live
 
   // -----------------------------------------------------------------------
   // Loading skeleton
@@ -831,9 +784,22 @@ export default function Dashboard() {
 
               {/* Actions */}
               <div className="mt-auto pt-4">
-                <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all">
-                  <Search className="h-4 w-4" />
-                  Deep Investigation
+                <button
+                  onClick={handleDeepInvestigation}
+                  disabled={isInvestigating}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:from-violet-800 disabled:to-fuchsia-800 disabled:opacity-60 text-white font-semibold text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all"
+                >
+                  {isInvestigating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Investigating...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4" />
+                      Deep Investigation
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -847,6 +813,18 @@ export default function Dashboard() {
     <div className="relative h-full w-full bg-[#0b0914] overflow-hidden group">
       {renderNodeDetails()}
       <ThreatGraph
+        nodes={nodes}
+        edges={edges}
+        attackPath={attackPath}
+        onNodeClick={handleNodeClick}
+      />
+    </div>
+  );
+
+  const renderGraph3DPanel = () => (
+    <div className="relative h-full w-full bg-[#0b0914] overflow-hidden">
+      {renderNodeDetails()}
+      <ThreatGraph3D
         nodes={nodes}
         edges={edges}
         attackPath={attackPath}
@@ -878,6 +856,22 @@ export default function Dashboard() {
     </div>
   );
 
+  const renderSponsorsPanel = () => (
+    <div className="flex-1 flex flex-col h-full bg-[#0b0914] overflow-y-auto custom-scrollbar p-0">
+      <ExtractionComparison
+        data={comparisonData}
+        isLoading={comparisonLoading}
+        onRunComparison={handleRunComparison}
+      />
+      <div className="border-t border-indigo-500/10" />
+      <VisionAnalysis
+        analysis={visionData}
+        isLoading={visionLoading}
+        onAnalyze={handleAnalyzeScreenshot}
+      />
+    </div>
+  );
+
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
@@ -889,8 +883,8 @@ export default function Dashboard() {
         threatLevel={threatBrief?.overall_threat_level || "moderate"}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
-        isDemoMode={isDemoMode}
-        onToggleDemo={toggleDemoMode}
+        isDemoMode={false}
+        onToggleDemo={() => {}}
         activeVisualizer={activeVisualizer}
         onVisualizerChange={setActiveVisualizer}
       />
@@ -917,7 +911,7 @@ export default function Dashboard() {
                   transition={{ duration: 0.3 }}
                   className="absolute inset-0"
                 >
-                  {activeVisualizer === 'graph' ? renderGraphPanel() : renderMapPanel()}
+                  {activeVisualizer === 'graph3d' ? renderGraph3DPanel() : activeVisualizer === 'graph' ? renderGraphPanel() : renderMapPanel()}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -931,12 +925,13 @@ export default function Dashboard() {
                 tabs={[
                   { title: "Intelligence", icon: FileText },
                   { title: "Investigate", icon: Search },
+                  { title: "Sponsors", icon: Sparkles },
                 ]}
                 activeColor="text-fuchsia-400"
-                defaultSelected={activeTab === 'intelligence' ? 0 : 1}
+                defaultSelected={activeTab === 'intelligence' ? 0 : activeTab === 'investigate' ? 1 : 2}
                 onChange={(index) => {
                   if (index !== null) {
-                    setActiveTab(index === 0 ? 'intelligence' : 'investigate');
+                    setActiveTab(index === 0 ? 'intelligence' : index === 1 ? 'investigate' : 'sponsors');
                   }
                 }}
                 className="w-full justify-center bg-indigo-500/[0.02] border-indigo-500/10 p-1"
@@ -954,7 +949,7 @@ export default function Dashboard() {
                   transition={{ duration: 0.2 }}
                   className="absolute inset-0 flex flex-col"
                 >
-                  {activeTab === 'intelligence' ? renderFeedPanel() : renderInvestigatePanel()}
+                  {activeTab === 'intelligence' ? renderFeedPanel() : activeTab === 'investigate' ? renderInvestigatePanel() : renderSponsorsPanel()}
                 </motion.div>
               </AnimatePresence>
             </div>

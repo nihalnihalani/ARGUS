@@ -8,6 +8,7 @@ async function request<T>(path: string, body: Record<string, unknown>): Promise<
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({ api_key: apiKey(), ...body }),
   });
   if (!res.ok) {

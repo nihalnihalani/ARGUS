@@ -21,12 +21,24 @@ export async function POST(req: NextRequest) {
 
     const task = await createResearchTask(fullQuery, threatIntelSchema);
 
+    // Yutori may return `id` or `taskId` depending on API version
+    const raw = task as Record<string, unknown>;
+    const taskId = raw.id ?? raw.taskId ?? raw.task_id;
+
+    if (!taskId) {
+      console.error('[research/deepdive] Unexpected response shape:', JSON.stringify(raw));
+      return NextResponse.json(
+        { success: false, error: 'Yutori API returned no task ID', raw },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       research: {
-        taskId: task.id,
+        taskId: String(taskId),
         query: fullQuery,
-        status: task.status,
+        status: raw.status ?? 'unknown',
       },
     });
   } catch (error) {
@@ -58,7 +70,7 @@ export async function GET(req: NextRequest) {
         taskId,
         status: status.status,
         result: status.result ?? null,
-        completed: status.status === 'completed',
+        completed: status.status === 'completed' || status.status === 'succeeded',
         failed: status.status === 'failed',
       },
     });

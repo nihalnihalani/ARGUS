@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractEntities, generateThreatBrief } from '@/lib/openai-client';
+import { extractStructuredThreatData } from '@/lib/fastino';
+import { analyzeThreatScreenshot } from '@/lib/reka';
 import { search as tavilySearch, extract as tavilyExtract } from '@/lib/tavily';
 import { mergeNode, createRelationship, runQuery } from '@/lib/neo4j';
 import type { GraphNode, GraphEdge, FeedItem, PipelineResult, NodeType, RelationshipType } from '@/lib/types';
@@ -23,6 +25,15 @@ const VALID_LABELS = new Set([
 
 export async function POST(req: NextRequest) {
   try {
+    // Validate internal API secret to prevent unauthenticated writes
+    const secret = req.headers.get('x-pipeline-secret');
+    if (process.env.PIPELINE_SECRET && secret !== process.env.PIPELINE_SECRET) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { scoutUpdate } = body;
 
@@ -38,9 +49,10 @@ export async function POST(req: NextRequest) {
     const feedItems: FeedItem[] = [];
 
     // ---------------------------------------------------------------
-    // Step 1: Extract entities from the scout update (try Yutori JSON first, fallback to OpenAI)
+    // Step 1: Extract entities (Yutori JSON → fallback to GLiNER + OpenAI in parallel)
     // ---------------------------------------------------------------
-    let extracted;
+    let extracted: { entities: any[]; relationships: any[]; iocs: any[] };
+    let glinerExtracted: { entities: any[]; relationships: any[]; iocs: any[] } | null = null;
     try {
       try {
         const parsed = typeof scoutUpdate === 'string' ? JSON.parse(scoutUpdate) : scoutUpdate;
@@ -55,8 +67,64 @@ export async function POST(req: NextRequest) {
           throw new Error('Not structured threat intelligence JSON');
         }
       } catch (parseErr) {
-        console.log('[pipeline] Falling back to OpenAI entity extraction');
-        extracted = await extractEntities(typeof scoutUpdate === 'string' ? scoutUpdate : JSON.stringify(scoutUpdate));
+        // Step 1b+1c: Run GLiNER and OpenAI extraction in parallel
+        console.log('[pipeline] Running GLiNER + OpenAI extraction in parallel');
+        const rawText = typeof scoutUpdate === 'string' ? scoutUpdate : JSON.stringify(scoutUpdate);
+
+        const [glinerResult, openaiResult] = await Promise.allSettled([
+          extractStructuredThreatData(rawText),
+          extractEntities(rawText),
+        ]);
+
+        const openaiData = openaiResult.status === 'fulfilled' ? openaiResult.value : null;
+        const glinerData = glinerResult.status === 'fulfilled' ? glinerResult.value : null;
+
+        if (glinerData) {
+          glinerExtracted = glinerData;
+          console.log(`[pipeline] GLiNER extracted ${glinerData.entities.length} entities`);
+        }
+
+        if (!openaiData && !glinerData) {
+          throw new Error('Both GLiNER and OpenAI extraction failed');
+        }
+
+        // Step 1d: Merge results — union + dedup by name (keep highest confidence / first seen)
+        const mergedEntities = new Map<string, any>();
+        const mergedRels: any[] = [];
+        const mergedIocs = new Map<string, any>();
+
+        // Add OpenAI entities first (higher detail)
+        if (openaiData) {
+          for (const e of openaiData.entities) mergedEntities.set(e.name.toLowerCase(), e);
+          mergedRels.push(...openaiData.relationships);
+          for (const ioc of openaiData.iocs) mergedIocs.set(`${ioc.type}:${ioc.value}`, ioc);
+        }
+
+        // Merge GLiNER entities (add new ones, don't overwrite existing)
+        if (glinerData) {
+          for (const e of glinerData.entities) {
+            if (!mergedEntities.has(e.name.toLowerCase())) {
+              mergedEntities.set(e.name.toLowerCase(), e);
+            }
+          }
+          for (const rel of glinerData.relationships) {
+            const key = `${rel.source}-${rel.target}-${rel.relationship}`;
+            if (!mergedRels.some(r => `${r.source}-${r.target}-${r.relationship}` === key)) {
+              mergedRels.push(rel);
+            }
+          }
+          for (const ioc of glinerData.iocs) {
+            const key = `${ioc.type}:${ioc.value}`;
+            if (!mergedIocs.has(key)) mergedIocs.set(key, ioc);
+          }
+        }
+
+        extracted = {
+          entities: Array.from(mergedEntities.values()),
+          relationships: mergedRels,
+          iocs: Array.from(mergedIocs.values()),
+        };
+        console.log(`[pipeline] Merged extraction: ${extracted.entities.length} entities, ${extracted.relationships.length} rels, ${extracted.iocs.length} IOCs`);
       }
     } catch (err) {
       console.warn('[pipeline] Entity extraction failed, using raw content:', err);
@@ -67,7 +135,7 @@ export async function POST(req: NextRequest) {
         severity: 'info',
         source: 'system',
         title: 'Raw scout update received',
-        description: scoutUpdate.slice(0, 300),
+        description: typeof scoutUpdate === 'string' ? scoutUpdate.slice(0, 300) : JSON.stringify(scoutUpdate).slice(0, 300),
       });
       return NextResponse.json({
         success: true,
@@ -112,13 +180,77 @@ export async function POST(req: NextRequest) {
     ]);
 
     // ---------------------------------------------------------------
-    // Step 3: Deep extraction from Tavily content (if any)
+    // Step 2.5: Reka screenshot analysis (if screenshot URLs present)
+    // ---------------------------------------------------------------
+    const screenshotUrls: string[] = extracted.entities
+      .map((e: Record<string, unknown>) => e.screenshot_url as string | undefined)
+      .filter((url): url is string => !!url);
+
+    if (screenshotUrls.length > 0) {
+      console.log(`[pipeline] Analyzing ${screenshotUrls.length} screenshots with Reka Vision (parallel)`);
+      const rekaResults = await Promise.allSettled(
+        screenshotUrls.slice(0, 3).map((url) => analyzeThreatScreenshot(url))
+      );
+      for (const result of rekaResults) {
+        if (result.status === 'fulfilled') {
+          const analysis = result.value;
+          if (analysis.entitiesFound.length > 0) {
+            feedItems.push({
+              id: `feed-reka-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              timestamp: new Date().toISOString(),
+              severity: analysis.riskLevel === 'none' ? 'info' : analysis.riskLevel as FeedItem['severity'],
+              source: 'reka',
+              title: `Reka Vision: ${analysis.isPhishing ? 'Phishing detected' : analysis.analysisType} analysis`,
+              description: analysis.summary.slice(0, 200),
+            });
+          }
+        } else {
+          console.warn('[pipeline] Reka screenshot analysis failed:', result.reason);
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Step 3: Deep extraction from Tavily content (GLiNER + OpenAI)
     // ---------------------------------------------------------------
     let deepEntities: typeof extracted | null = null;
     const rawExtracts = extractedContent.results.map((r) => r.raw_content).join('\n\n');
     if (rawExtracts.length > 100) {
       try {
-        deepEntities = await extractEntities(rawExtracts.slice(0, 10000));
+        // Run GLiNER and OpenAI deep extraction in parallel
+        const [glinerDeep, openaiDeep] = await Promise.allSettled([
+          extractStructuredThreatData(rawExtracts.slice(0, 10000)),
+          extractEntities(rawExtracts.slice(0, 10000)),
+        ]);
+
+        const openaiData = openaiDeep.status === 'fulfilled' ? openaiDeep.value : null;
+        const glinerData = glinerDeep.status === 'fulfilled' ? glinerDeep.value : null;
+
+        if (openaiData || glinerData) {
+          // Dedup deep entities by name (case-insensitive)
+          const deepEntityMap = new Map<string, any>();
+          for (const e of [...(openaiData?.entities || []), ...(glinerData?.entities || [])]) {
+            if (!deepEntityMap.has(e.name.toLowerCase())) deepEntityMap.set(e.name.toLowerCase(), e);
+          }
+          // Dedup deep relationships by source-target-relationship key
+          const deepRelMap = new Map<string, any>();
+          for (const r of [...(openaiData?.relationships || []), ...(glinerData?.relationships || [])]) {
+            const key = `${r.source}-${r.target}-${r.relationship}`;
+            if (!deepRelMap.has(key)) deepRelMap.set(key, r);
+          }
+          // Dedup deep IOCs by type:value key
+          const deepIocMap = new Map<string, any>();
+          for (const ioc of [...(openaiData?.iocs || []), ...(glinerData?.iocs || [])]) {
+            const key = `${ioc.type}:${ioc.value}`;
+            if (!deepIocMap.has(key)) deepIocMap.set(key, ioc);
+          }
+          deepEntities = {
+            entities: Array.from(deepEntityMap.values()),
+            relationships: Array.from(deepRelMap.values()),
+            iocs: Array.from(deepIocMap.values()),
+          };
+          console.log(`[pipeline] Deep extraction: ${deepEntities.entities.length} entities`);
+        }
       } catch {
         // Non-critical — skip
       }
@@ -136,10 +268,10 @@ export async function POST(req: NextRequest) {
       ...(deepEntities?.relationships || []),
     ];
 
-    // Deduplicate by name
+    // Deduplicate by name (case-insensitive to match Step 1d merge)
     const seenEntities = new Set<string>();
     for (const entity of allEntities) {
-      const entityKey = entity.name;
+      const entityKey = entity.name.toLowerCase();
       if (seenEntities.has(entityKey)) continue;
       seenEntities.add(entityKey);
 
@@ -188,14 +320,14 @@ export async function POST(req: NextRequest) {
     // Create relationships
     const entityTypeMap = new Map<string, string>();
     for (const entity of allEntities) {
-      entityTypeMap.set(entity.name, entity.type);
-      if (entity.cve_id) entityTypeMap.set(entity.cve_id, entity.type);
-      if (entity.mitre_id) entityTypeMap.set(entity.mitre_id, entity.type);
+      entityTypeMap.set(entity.name.toLowerCase(), entity.type);
+      if (entity.cve_id) entityTypeMap.set(entity.cve_id.toLowerCase(), entity.type);
+      if (entity.mitre_id) entityTypeMap.set(entity.mitre_id.toLowerCase(), entity.type);
     }
 
     for (const rel of allRelationships) {
-      const sourceType = entityTypeMap.get(rel.source);
-      const targetType = entityTypeMap.get(rel.target);
+      const sourceType = entityTypeMap.get(rel.source.toLowerCase());
+      const targetType = entityTypeMap.get(rel.target.toLowerCase());
       if (!sourceType || !targetType) continue;
       if (!VALID_LABELS.has(sourceType) || !VALID_LABELS.has(targetType)) continue;
 

@@ -246,9 +246,10 @@ export default function ThreatGraph({
         d3
           .forceLink<SimNode, SimLink>(newSimLinks)
           .id((d) => d.id)
-          .distance(80)
+          .distance(55)
+          .strength(1)
       )
-      .force('charge', d3.forceManyBody().strength(-200))
+      .force('charge', d3.forceManyBody().strength(-120))
       .force('center', d3.forceCenter(w / 2, h / 2))
       .force('collision', d3.forceCollide<SimNode>().radius((d) => getNodeStyle(d).radius + 4))
       .alphaDecay(0.02)
@@ -480,7 +481,6 @@ export default function ThreatGraph({
       const filter = isAttackMode && inPath ? 'url(#attackGlow)' : isSelected ? 'url(#glow)' : undefined;
 
       const groupProps = {
-        key: node.id,
         transform: `translate(${node.x},${node.y})`,
         opacity,
         style: { cursor: 'grab', transition: 'opacity 0.5s ease' } as React.CSSProperties,
@@ -538,7 +538,7 @@ export default function ThreatGraph({
       }
 
       return (
-        <g {...groupProps} className={isNewNode ? 'animate-node-enter' : undefined}>
+        <g key={node.id} {...groupProps} className={isNewNode ? 'animate-node-enter' : undefined}>
           {shapeElements}
         </g>
       );
@@ -577,9 +577,9 @@ export default function ThreatGraph({
           y1={src.y}
           x2={tgt.x}
           y2={tgt.y}
-          stroke="rgba(255, 255, 255, 0.06)"
-          strokeWidth={1}
-          strokeOpacity={dimmed ? 0.03 : 1}
+          stroke="rgba(140, 160, 220, 0.3)"
+          strokeWidth={1.5}
+          strokeOpacity={dimmed ? 0.05 : 1}
           className={dimmed ? '' : 'animate-flow'}
           style={{ transition: 'opacity 0.5s ease, stroke-opacity 0.5s ease' }}
         />

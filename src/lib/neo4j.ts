@@ -16,7 +16,9 @@ export async function runQuery<T>(
   cypher: string,
   params?: Record<string, unknown>
 ): Promise<T[]> {
-  const session = getDriver().session();
+  const session = getDriver().session({
+    database: process.env.NEO4J_DATABASE || "neo4j",
+  });
   try {
     const result = await session.run(cypher, params);
     return result.records.map((r) => r.toObject() as T);
@@ -25,6 +27,15 @@ export async function runQuery<T>(
   }
 }
 
+const VALID_LABELS = new Set([
+  "ThreatActor", "Vulnerability", "Exploit", "Software",
+  "Organization", "Malware", "Campaign", "AttackTechnique",
+]);
+
+const VALID_KEYS = new Set([
+  "name", "cve_id", "mitre_id",
+]);
+
 /** Upsert a node — MERGE on a key property, then SET all other properties. */
 export async function mergeNode(
   label: string,
@@ -32,12 +43,29 @@ export async function mergeNode(
   keyValue: string,
   properties: Record<string, unknown>
 ) {
+  if (!VALID_LABELS.has(label)) throw new Error(`Invalid label: ${label}`);
+  if (!VALID_KEYS.has(key)) throw new Error(`Invalid key: ${key}`);
+
   const props = Object.entries(properties)
     .map(([k]) => `n.${k} = $props.${k}`)
     .join(", ");
   const cypher = `MERGE (n:${label} {${key}: $keyValue}) SET ${props}, n.updated_at = datetime() RETURN n`;
   return runQuery(cypher, { keyValue, props: properties });
 }
+
+const VALID_RELATIONSHIPS = new Set([
+  "USES",
+  "TARGETS",
+  "AFFECTS",
+  "USED_BY",
+  "DEPLOYS",
+  "EXPLOITS",
+  "ATTRIBUTED_TO",
+  "EMPLOYS_TECHNIQUE",
+  "COLLABORATES_WITH",
+  "TARGETS_SECTOR",
+  "RELATED_TO",
+]);
 
 /** Create a relationship between two nodes (MERGE = idempotent). */
 export async function createRelationship(
@@ -50,6 +78,13 @@ export async function createRelationship(
   relType: string,
   relProps?: Record<string, unknown>
 ) {
+  if (!VALID_RELATIONSHIPS.has(relType)) {
+    throw new Error(`Invalid relationship type: ${relType}`);
+  }
+  if (!VALID_LABELS.has(sourceLabel)) throw new Error(`Invalid source label: ${sourceLabel}`);
+  if (!VALID_LABELS.has(targetLabel)) throw new Error(`Invalid target label: ${targetLabel}`);
+  if (!VALID_KEYS.has(sourceKey)) throw new Error(`Invalid source key: ${sourceKey}`);
+  if (!VALID_KEYS.has(targetKey)) throw new Error(`Invalid target key: ${targetKey}`);
   const cypher = `
     MATCH (a:${sourceLabel} {${sourceKey}: $sourceValue})
     MATCH (b:${targetLabel} {${targetKey}: $targetValue})
@@ -102,15 +137,15 @@ export async function getFullGraph() {
 /** Aggregate statistics for the header stats bar. */
 export async function getGraphStats() {
   const cypher = `
-    MATCH (n)
+    OPTIONAL MATCH (n)
     WITH count(n) AS nodeCount
-    MATCH ()-[r]->()
+    OPTIONAL MATCH ()-[r]->()
     WITH nodeCount, count(r) AS edgeCount
-    MATCH (ta:ThreatActor)
+    OPTIONAL MATCH (ta:ThreatActor)
     WITH nodeCount, edgeCount, count(ta) AS actorCount
-    MATCH (v:Vulnerability)
+    OPTIONAL MATCH (v:Vulnerability)
     WITH nodeCount, edgeCount, actorCount, count(v) AS vulnCount
-    MATCH (v2:Vulnerability) WHERE v2.severity = 'critical'
+    OPTIONAL MATCH (v2:Vulnerability) WHERE v2.severity = 'critical'
     RETURN nodeCount, edgeCount, actorCount, vulnCount, count(v2) AS criticalCount
   `;
   return runQuery(cypher, {});

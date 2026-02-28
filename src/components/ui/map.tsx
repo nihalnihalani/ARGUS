@@ -66,6 +66,7 @@ function Map({ children, styles, ...props }: MapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
 
   const mapStyles = useMemo(
@@ -97,15 +98,25 @@ function Map({ children, styles, ...props }: MapProps) {
     });
 
     const styleDataHandler = () => setIsStyleLoaded(true);
-    const loadHandler = () => setIsLoaded(true);
+    const loadHandler = () => {
+      setMapError(null);
+      setIsLoaded(true);
+    };
+    const errorHandler = (e: { error?: { message?: string }; message?: string }) => {
+      const message = e.error?.message || e.message || "Map failed to load";
+      console.error("[Map] Error:", message);
+      setMapError(message);
+    };
 
     mapInstance.on("load", loadHandler);
     mapInstance.on("styledata", styleDataHandler);
+    mapInstance.on("error", errorHandler);
     mapRef.current = mapInstance;
 
     return () => {
       mapInstance.off("load", loadHandler);
       mapInstance.off("styledata", styleDataHandler);
+      mapInstance.off("error", errorHandler);
       mapInstance.remove();
       mapRef.current = null;
     };
@@ -123,11 +134,15 @@ function Map({ children, styles, ...props }: MapProps) {
 
   useEffect(() => {
     if (mapRef.current && isLoaded) {
-      if (props.zoom !== undefined) mapRef.current.easeTo({ zoom: props.zoom });
-      if (props.pitch !== undefined) mapRef.current.easeTo({ pitch: props.pitch });
-      if (props.bearing !== undefined) mapRef.current.easeTo({ bearing: props.bearing });
+      const options: Parameters<MapLibreGL.Map["easeTo"]>[0] = {};
+      let hasChange = false;
+      if (props.center !== undefined) { options.center = props.center as [number, number]; hasChange = true; }
+      if (props.zoom !== undefined) { options.zoom = props.zoom; hasChange = true; }
+      if (props.pitch !== undefined) { options.pitch = props.pitch; hasChange = true; }
+      if (props.bearing !== undefined) { options.bearing = props.bearing; hasChange = true; }
+      if (hasChange) mapRef.current.easeTo(options);
     }
-  }, [props.zoom, props.pitch, props.bearing, isLoaded]);
+  }, [props.center, props.zoom, props.pitch, props.bearing, isLoaded]);
 
   const isLoading = !isMounted || !isLoaded || !isStyleLoaded;
 
@@ -140,6 +155,11 @@ function Map({ children, styles, ...props }: MapProps) {
     >
       <div ref={containerRef} className="relative w-full h-full">
         {isLoading && <DefaultLoader />}
+        {mapError && (
+          <div className="absolute top-2 left-2 z-20 rounded-md bg-destructive/90 px-3 py-1.5 text-xs text-destructive-foreground shadow-sm">
+            Map error: {mapError}
+          </div>
+        )}
         {/* guard against hydration error */}
         {isMounted && children}
       </div>
@@ -195,6 +215,20 @@ function MapMarker({
   const [isReady, setIsReady] = useState(false);
   const markerOptionsRef = useRef(markerOptions);
 
+  // Use refs for callbacks to avoid stale closures in the mount effect
+  const onClickRef = useRef(onClick);
+  const onMouseEnterRef = useRef(onMouseEnter);
+  const onMouseLeaveRef = useRef(onMouseLeave);
+  const onDragStartRef = useRef(onDragStart);
+  const onDragRef = useRef(onDrag);
+  const onDragEndRef = useRef(onDragEnd);
+  onClickRef.current = onClick;
+  onMouseEnterRef.current = onMouseEnter;
+  onMouseLeaveRef.current = onMouseLeave;
+  onDragStartRef.current = onDragStart;
+  onDragRef.current = onDrag;
+  onDragEndRef.current = onDragEnd;
+
   useEffect(() => {
     if (!isLoaded || !map) return;
 
@@ -211,9 +245,9 @@ function MapMarker({
 
     markerRef.current = marker;
 
-    const handleClick = (e: MouseEvent) => onClick?.(e);
-    const handleMouseEnter = (e: MouseEvent) => onMouseEnter?.(e);
-    const handleMouseLeave = (e: MouseEvent) => onMouseLeave?.(e);
+    const handleClick = (e: MouseEvent) => onClickRef.current?.(e);
+    const handleMouseEnter = (e: MouseEvent) => onMouseEnterRef.current?.(e);
+    const handleMouseLeave = (e: MouseEvent) => onMouseLeaveRef.current?.(e);
 
     container.addEventListener("click", handleClick);
     container.addEventListener("mouseenter", handleMouseEnter);
@@ -221,15 +255,15 @@ function MapMarker({
 
     const handleDragStart = () => {
       const lngLat = marker.getLngLat();
-      onDragStart?.({ lng: lngLat.lng, lat: lngLat.lat });
+      onDragStartRef.current?.({ lng: lngLat.lng, lat: lngLat.lat });
     };
     const handleDrag = () => {
       const lngLat = marker.getLngLat();
-      onDrag?.({ lng: lngLat.lng, lat: lngLat.lat });
+      onDragRef.current?.({ lng: lngLat.lng, lat: lngLat.lat });
     };
     const handleDragEnd = () => {
       const lngLat = marker.getLngLat();
-      onDragEnd?.({ lng: lngLat.lng, lat: lngLat.lat });
+      onDragEndRef.current?.({ lng: lngLat.lng, lat: lngLat.lat });
     };
 
     marker.on("dragstart", handleDragStart);
@@ -873,8 +907,6 @@ function MapRoute({
       },
     });
 
-    let animationFrame: number = 0;
-
     if (animated) {
       map.addSource(particleSourceId, {
         type: "geojson",
@@ -899,7 +931,6 @@ function MapRoute({
     }
 
     return () => {
-      cancelAnimationFrame(animationFrame);
       try {
         if (map.getLayer(particleLayerId)) map.removeLayer(particleLayerId);
         if (map.getSource(particleSourceId)) map.removeSource(particleSourceId);

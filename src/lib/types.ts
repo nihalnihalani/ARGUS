@@ -82,7 +82,7 @@ export interface FeedItem {
   id: string;
   timestamp: string;
   severity: "critical" | "high" | "medium" | "low" | "info";
-  source: "nvd" | "twitter" | "github" | "news" | "system";
+  source: "nvd" | "twitter" | "github" | "news" | "system" | "gliner" | "reka" | "modulate";
   title: string;
   description: string;
   sourceUrl?: string;
@@ -137,4 +137,71 @@ export interface PipelineResult {
   newEdges: GraphEdge[];
   threatBrief: ThreatBrief;
   feedItems: FeedItem[];
+}
+
+// --- Sponsor Integration Types ---
+
+export interface GlinerEntity {
+  text: string;
+  label: string;
+  score: number;
+  start: number;
+  end: number;
+}
+
+export interface GlinerRelation {
+  head: string;
+  tail: string;
+  relation: string;
+  score: number;
+}
+
+export interface GlinerExtractionResult {
+  entities: GlinerEntity[];
+  relations: GlinerRelation[];
+  iocs: { type: string; value: string; context: string }[];
+  classifications: { label: string; score: number }[];
+}
+
+export interface ExtractionComparison {
+  gliner: {
+    entities: GlinerEntity[];
+    entityCount: number;
+    iocCount: number;
+    extractionTimeMs: number;
+  };
+  openai: {
+    entities: { type: string; name: string }[];
+    entityCount: number;
+    iocCount: number;
+    extractionTimeMs: number;
+  };
+  overlap: {
+    sharedEntities: string[];
+    glinerOnly: string[];
+    openaiOnly: string[];
+    f1Estimate: number;
+  };
+}
+
+export interface VisualAnalysis {
+  imageUrl: string;
+  analysisType: "phishing" | "forum" | "malware" | "general";
+  isPhishing: boolean;
+  confidence: number;
+  riskLevel: "critical" | "high" | "medium" | "low" | "none";
+  indicators: string[];
+  entitiesFound: { type: string; name: string }[];
+  summary: string;
+  model: string;
+}
+
+export interface VoiceAnalysisResult {
+  audioUrl: string;
+  toxicity: { score: number; label: string };
+  vishing: { isVishing: boolean; confidence: number; indicators: string[] };
+  deepfake: { isDeepfake: boolean; confidence: number };
+  sentiment: string;
+  transcript?: string;
+  isStub: true;
 }
